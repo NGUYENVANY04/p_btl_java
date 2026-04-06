@@ -12,6 +12,10 @@ import java.util.List;
 @Service
 public class SupabaseService {
 
+    private final String URL = "https://znfxhbrkabxenuzrcogd.supabase.co/rest/v1/alerts?select=*";
+
+    private final String API_KEY = "sb_secret_NXFJy_AuCYhqJmmJadDKNA_I7N91qFu";
+
     // GET tất cả alerts
     public List<Alert> getAllData() {
         RestTemplate restTemplate = new RestTemplate();
