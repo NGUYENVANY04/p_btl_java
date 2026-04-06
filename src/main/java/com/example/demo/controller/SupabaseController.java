@@ -2,10 +2,9 @@ package com.example.demo.controller;
 
 import com.example.demo.model.Alert;
 import com.example.demo.service.SupabaseService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,23 +17,23 @@ public class SupabaseController {
         this.service = service;
     }
 
-    // POST insert alert
+    // POST alert
     @PostMapping("/alerts")
     public ResponseEntity<?> createAlert(@RequestBody Alert alert) {
-        try {
-            String result = service.insertAlert(alert);
+        String result = service.insertAlert(alert);
 
-            // Trả về JSON chuẩn
-            return ResponseEntity.ok(Map.of(
-                    "success", true,
-                    "data", result));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(
-                            "success", false,
-                            "error", e.getMessage()));
-        }
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Alert created successfully",
+                "data", result));
     }
 
+    // GET tất cả alert
+    @GetMapping("/alerts")
+    public ResponseEntity<?> getAlerts() {
+        List<Alert> list = service.getAllAlerts();
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "data", list));
+    }
 }

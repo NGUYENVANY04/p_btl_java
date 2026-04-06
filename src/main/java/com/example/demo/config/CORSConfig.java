@@ -13,8 +13,8 @@ public class CORSConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // áp dụng cho tất cả endpoint
-                        .allowedOrigins("*") // cho phép mọi nguồn (web, Postman,…)
+                registry.addMapping("/**")
+                        .allowedOrigins("*")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS");
             }
         };
