@@ -1,0 +1,16 @@
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\BackendIotApplication.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\config\MqttConfig.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\controller\AlertController.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\controller\DeviceController.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\controller\PowerController.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\dto\ThresholdConfigRequest.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\model\Alert.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\model\AlertType.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\model\Device.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\model\DeviceStatus.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\model\SensorData.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\repository\AlertRepository.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\repository\DeviceRepository.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\repository\SensorRepository.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\service\DeviceOfflineScheduler.java
+D:\JAVA\backend-iot\backend-iot\src\main\java\com\iot\backend_iot\service\TelemetryService.java

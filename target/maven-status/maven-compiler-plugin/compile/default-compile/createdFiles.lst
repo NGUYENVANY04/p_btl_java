@@ -1,0 +1,8 @@
+com\iot\backend_iot\model\AlertType.class
+com\iot\backend_iot\model\Alert.class
+com\iot\backend_iot\service\DeviceOfflineScheduler.class
+com\iot\backend_iot\repository\DeviceRepository.class
+com\iot\backend_iot\model\DeviceStatus.class
+com\iot\backend_iot\model\Device.class
+com\iot\backend_iot\service\TelemetryService.class
+com\iot\backend_iot\repository\AlertRepository.class
