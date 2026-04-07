@@ -30,6 +30,7 @@ public class SupabaseController {
 
     // GET tất cả alert
     @GetMapping("/alerts")
+
     public ResponseEntity<?> getAlerts() {
         List<Alert> list = service.getAllAlerts();
         return ResponseEntity.ok(Map.of(
