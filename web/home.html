@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* CSS cho nút bấm giống y hệt mẫu bạn gửi */
+        .nav-button {
+            background: linear-gradient(135deg, #62e2f4 0%, #1159b7 100%);
+            border-radius: 15px;
+            color: black;
+            font-weight: 500;
+            padding: 15px;
+            text-align: center;
+            width: 100%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: none;
+            line-height: 1.2;
+        }
+
+        .nav-button:hover {
+            transform: scale(1.02);
+            filter: brightness(1.1);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .nav-button:active {
+            transform: scale(0.98);
+        }
+
+        /* Sidebar và Vùng chứa nội dung */
+        .sidebar {
+            width: 300px;
+            background-color: #d1d5db; /* Màu xám nhạt */
+            height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            position: fixed;
+            left: 0;
+            top: 0;
+        }
+
+        .main-content {
+            margin-left: 300px;
+            width: calc(100% - 300px);
+            height: 100vh;
+            background-color: white;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <button class="nav-button" onclick="changePage('usercase1/usercase1.html')">
+            1
+        </button>
+
+        <button class="nav-button" onclick="changePage('usercase2/usercase2.html')">
+            2
+        </button>
+
+        <button class="nav-button" onclick="changePage('usercase3/usercase3.html')">
+            3
+        </button>
+
+        <button class="nav-button" onclick="changePage('usercase4/usercase4.html')">
+            4
+        </button>
+        <button class="nav-button" onclick="changePage('usercase5/usercase5.html')">
+            5
+        </button>
+    </div>
+
+    <div class="main-content">
+        <iframe id="content-frame" src="theo_doi.html"></iframe>
+    </div>
+
+    <script>
+        function changePage(url) {
+            document.getElementById('content-frame').src = url;
+        }
+    </script>
+
+</body>
+</html>
