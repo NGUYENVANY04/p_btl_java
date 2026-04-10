@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import com.example.demo.service.quochoc;
 // import com.example.demo.service.ducthinh;
 // import com.example.demo.service.xuandat;
-// import com.example.demo.service.daocuong;
+import com.example.demo.service.daocuong;
 
 import java.util.List;
 import java.util.Map;
@@ -45,8 +45,8 @@ public class SupabaseController {
     // @Autowired
     // private xuandat xuanDatService;
 
-    // @Autowired
-    // private daocuong daoCuongService;
+    @Autowired
+    private daocuong daoCuongService;
 
     // -----------------------
     // API demo vany service
@@ -76,5 +76,34 @@ public class SupabaseController {
     @GetMapping("/quochoc/energy/monthly")
     public ResponseEntity<List<Map<String, Object>>> getMonthlyEnergy(@RequestParam(required = false) String month) {
         return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
+    }
+
+    // -----------------------------
+    // Task 3: Thiết bị offline
+    // -----------------------------
+    @GetMapping("/daocuong/device-statuses")
+    public ResponseEntity<List<Map<String, Object>>> getDeviceStatuses() {
+        return ResponseEntity.ok(daoCuongService.getDeviceStatuses());
+    }
+
+    @PostMapping("/daocuong/check-offline")
+    public ResponseEntity<Map<String, Object>> checkOffline(@RequestParam(defaultValue = "5") int minutes) {
+        return ResponseEntity.ok(daoCuongService.checkOfflineDevices(minutes));
+    }
+
+    // -----------------------------
+    // Task 4: Vượt ngưỡng
+    // -----------------------------
+    @PostMapping("/daocuong/check-threshold")
+    public ResponseEntity<Map<String, Object>> checkThreshold(@RequestParam int deviceId) {
+        return ResponseEntity.ok(daoCuongService.checkThresholdForDevice(deviceId));
+    }
+
+    @GetMapping("/daocuong/alerts")
+    public ResponseEntity<List<Map<String, Object>>> getAlerts(
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false, defaultValue = "false") boolean unreadOnly,
+            @RequestParam(required = false, defaultValue = "20") int limit) {
+        return ResponseEntity.ok(daoCuongService.getAlerts(deviceId, unreadOnly, limit));
     }
 }
