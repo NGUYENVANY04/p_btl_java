@@ -10,8 +10,8 @@ import com.example.demo.service.quochoc;
 // import com.example.demo.service.xuandat;
 // import com.example.demo.service.daocuong;
 
-import java.util.List;
-import java.util.Map;
+// import java.util.List;
+// import java.util.Map;
 
 /**
  * SupabaseController
@@ -47,34 +47,21 @@ public class SupabaseController {
 
     // @Autowired
     // private daocuong daoCuongService;
-
-    // -----------------------
-    // API demo vany service
-    // -----------------------
-
-    @GetMapping("/quochoc/sensordata/fourth")
-    public ResponseEntity<Map<String, Object>> getFourthSensorData() {
-        Map<String, Object> sensorData = quochocService.getFourthSensorData();
-        if (sensorData != null) {
-            return ResponseEntity.ok(sensorData);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
-    // -----------------------------
-    // GET tổng năng lượng theo năm
-    // -----------------------------
     @GetMapping("/quochoc/energy/yearly")
-    public ResponseEntity<List<Map<String, Object>>> getYearlyEnergy() {
-        return ResponseEntity.ok(quochocService.getYearlyEnergy());
+    public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
+        return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
     }
 
-    // -----------------------------
-    // GET tổng năng lượng theo tháng
-    // -----------------------------
+    // MONTH → ngày
     @GetMapping("/quochoc/energy/monthly")
-    public ResponseEntity<List<Map<String, Object>>> getMonthlyEnergy(@RequestParam(required = false) String month) {
+    public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
         return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
     }
+
+    // DAY → raw theo giờ
+    @GetMapping("/quochoc/data/day")
+    public ResponseEntity<?> getDay(@RequestParam String day) {
+        return ResponseEntity.ok(quochocService.getDataByDay(day));
+    }
+
 }
