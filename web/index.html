@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Dashboard</title>
+
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body id="app">
+
+    <!-- Login/Auth Modal -->
+    <div id="auth-modal" class="auth-modal active">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <img src="images/logo.jpg" alt="IoT Logo" width="80" height="80">
+            </div>
+            <h1 class="auth-title">IoT Dashboard</h1>
+            <p class="auth-subtitle">Quản lý thiết bị IoT thông minh</p>
+            
+            <form id="login-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="username">Tên đăng nhập</label>
+                    <input type="text" id="username" placeholder="Nhập tên đăng nhập" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Mật khẩu</label>
+                    <input type="password" id="password" placeholder="Nhập mật khẩu" required>
+                </div>
+
+                <button type="submit" class="auth-button">Đăng nhập</button>
+            </form>
+
+            <div class="auth-footer">
+                <p>Account: admin / admin</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="main-app" class="app-container hidden">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <img src="images/logo.jpg" alt="IoT Logo" width="40" height="40">
+                    <span>IoT Dashboard</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <!-- Dashboard Home -->
+                <button class="nav-button active" onclick="changePage('home', this)">
+                    <span class="icon"></span>
+                    <span>Trang chủ</span>
+                </button>
+
+                <!-- ADMIN -->
+                <div class="nav-item">
+                    <button class="nav-button" onclick="toggleSubmenu(this)">
+                        <span class="icon"></span>
+                        <span>Cấu hình & Đặt ngưỡng</span>
+                    </button>
+
+                    <div class="submenu">
+                        <button onclick="changePage('usercase1/device.html', this)">Cấu hình thiết bị</button>
+                        <button onclick="changePage('usercase1/threshold.html', this)">Đặt ngưỡng cảnh báo</button>
+                    </div>
+                </div>
+
+                <button class="nav-button" onclick="changePage('usercase2/usercase2.html', this)">
+                    <span class="icon"></span>
+                    <span>Dữ liệu cảm biến</span>
+                </button>
+
+                <button class="nav-button" onclick="changePage('usercase3/usercase3.html', this)">
+                    <span class="icon"></span>
+                    <span>Kết nối WiFi & MQTT</span>
+                </button>
+
+                <button class="nav-button" onclick="changePage('usercase4/usercase4.html', this)">
+                    <span class="icon"></span>
+                    <span>Thông báo & Logs</span>
+                </button>
+
+                <button class="nav-button" onclick="changePage('usercase5/usercase5.html', this)">
+                    <span class="icon"></span>
+                    <span>Tài khoản & Firmware</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="logout-btn" onclick="handleLogout()">
+                    <span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M17 16L21 12M21 12L17 8M21 12H9M5 8H3V16H5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg></span>
+                    <span>Đăng xuất</span>
+                </button>
+                <div class="user-info">
+                    <div class="user-avatar">A</div>
+                    <div class="user-details">
+                        <p class="user-name" id="user-name">Admin</p>
+                        <p class="user-status">Online</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Header -->
+            <div class="top-header">
+                <div class="header-left">
+                    <h1 id="page-title">Trang chủ</h1>
+                    <p id="page-subtitle">Chào mừng bạn đến với IoT Dashboard</p>
+                </div>
+                <div class="header-right">
+                    <div class="time-display" id="time-display"></div>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div id="content-area">
+                <iframe id="content-frame" style="display: none;"></iframe>
+                <div id="home-content" class="home-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

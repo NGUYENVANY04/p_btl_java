@@ -1,0 +1,238 @@
+
+/* =========================================================
+   1️⃣ GRID CHỨA CÁC DEVICE CARD
+   ========================================================= */
+.threshold-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+
+    gap: 25px;
+    margin-top: 20px;
+}
+
+
+
+/* =========================================================
+   2️⃣ DEVICE CARD (TÁI SỬ DỤNG STYLE CHUNG)
+   -> giống device.css để 2 trang nhìn đồng bộ
+   ========================================================= */
+.device-card {
+    background: var(--bg-panel);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 28px; 
+    position: relative;
+    box-shadow: var(--shadow-card);
+    transition: var(--transition-smooth);
+
+    overflow: hidden; 
+   
+}
+
+
+/* góc neon trang trí */
+.device-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 18px; 
+    height: 18px;
+
+    border-right: 3px solid var(--accent-blue);
+    border-bottom: 3px solid var(--accent-blue);
+    border-bottom-right-radius: var(--radius-lg);
+
+    opacity: 0.8;
+}
+
+
+/* hover card bay lên */
+.device-card:hover {
+    transform: translateY(-8px); 
+    border-color: rgba(0, 245, 255, 0.6);
+    box-shadow: 0 15px 40px rgba(0, 245, 255, 0.2); 
+}
+
+
+
+/* =========================================================
+   3️⃣ HEADER CARD
+   ========================================================= */
+.card-header {
+    border-bottom: 1px solid rgba(0, 245, 255, 0.15); 
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+}
+
+.card-header h3 {
+    color: var(--accent-blue);
+    font-size: 1.4rem; 
+    font-weight: 800; 
+    margin-bottom: 8px;
+    letter-spacing: 1px;
+}
+
+/* hiển thị vị trí device */
+.card-header .location {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+
+
+/* =========================================================
+   4️⃣ NHÓM INPUT (TEMPERATURE / HUMIDITY ...)
+   ========================================================= */
+.inputs-group {
+    display: grid;
+
+    /* 2 input nằm ngang */
+    grid-template-columns: 1fr 1fr;
+
+    gap: 15px;
+    margin: 20px 0;
+}
+
+
+/* label của input */
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    letter-spacing: 1.5px;
+    margin-bottom: 8px;
+}
+
+
+/* wrapper để đặt đơn vị (°C, %) bên phải input */
+.input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+
+/* INPUT THRESHOLD */
+.form-group input {
+    width: 100%;
+
+    background: var(--bg-input);
+    border: 2px solid rgba(0, 245, 255, 0.3); 
+    color: var(--accent-blue);
+
+    padding: 15px 18px;
+    padding-right: 45px; 
+
+    border-radius: var(--radius-md);
+
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 1.3rem; 
+    font-weight: 700; 
+
+    transition: var(--transition-fast);
+}
+
+/* focus input */
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(0, 245, 255, 0.4); 
+    background: rgba(15, 20, 25, 0.9);
+}
+
+
+
+.input-wrapper .unit {
+    position: absolute;
+    right: 12px;
+    color: var(--accent-teal);
+    font-weight: bold;
+    font-size: 0.85rem;
+    text-shadow: 0 0 8px rgba(0, 188, 212, 0.5);
+
+    pointer-events: none; 
+    
+}
+
+
+
+/* =========================================================
+   5️⃣ NÚT SAVE THRESHOLD
+   ========================================================= */
+.btn-update {
+    width: 100%;
+
+    background: rgba(0, 245, 255, 0.1); 
+    color: var(--accent-blue);
+    border: 2px solid var(--accent-blue); 
+
+    padding: 16px; 
+    border-radius: var(--radius-md);
+
+    font-weight: 800; 
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+    font-size: 1.0rem; 
+    letter-spacing: 1px;
+
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+/* hover button */
+.btn-update:hover {
+    background: rgba(0, 245, 255, 0.25); 
+    box-shadow: 0 8px 20px rgba(0, 245, 255, 0.4); 
+    transform: translateY(-3px); 
+}
+
+/* hover -> phát sáng neon */
+.btn-update:hover:not(:disabled) {
+    background: var(--accent-blue);
+    color: #000;
+    box-shadow: var(--accent-blue-glow);
+    transform: scale(1.02);
+}
+
+/* khi button disabled */
+.btn-update:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+
+
+/* =========================================================
+   6️⃣ LOADING BUTTON (khi đang save)
+   ========================================================= */
+.btn-update.is-loading i {
+    animation: spin 1s linear infinite;
+}
+
+/* animation quay icon */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+
+
+/* =========================================================
+   7️⃣ ERROR MESSAGE TỪ JS
+   ========================================================= */
+.error-msg {
+    text-align: center;
+    padding: 40px;
+
+    color: var(--accent-red);
+
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px dashed var(--accent-red);
+    border-radius: var(--radius-lg);
+
+    font-weight: bold;
+    letter-spacing: 1px;
+}

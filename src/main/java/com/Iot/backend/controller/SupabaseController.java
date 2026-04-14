@@ -1,14 +1,14 @@
-package com.example.demo.controller;
+package com.Iot.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// import com.example.demo.service.vany;
-import com.example.demo.service.quochoc;
-// import com.example.demo.service.ducthinh;
-// import com.example.demo.service.xuandat;
-// import com.example.demo.service.daocuong;
+// import com.Iot.backend.service.vany;
+import com.Iot.backend.service.quochoc;
+// import com.Iot.backend.service.ducthinh;
+// import com.Iot.backend.service.xuandat;
+// import com.Iot.backend.service.daocuong;
 
 // import java.util.List;
 // import java.util.Map;

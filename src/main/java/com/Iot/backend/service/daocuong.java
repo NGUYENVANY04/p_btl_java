@@ -1,10 +1,10 @@
-// package com.example.demo.service;
+// package com.Iot.backend.service;
 
-// // import com.example.demo.model.SensorData;
-// // import com.example.demo.model.Alert;
-// // import com.example.demo.model.Device;
-// // import com.example.demo.model.DeviceStatus;
-// // import com.example.demo.model.DeviceLimit;
+// // import com.Iot.backend.model.SensorData;
+// // import com.Iot.backend.model.Alert;
+// // import com.Iot.backend.model.Device;
+// // import com.Iot.backend.model.DeviceStatus;
+// // import com.Iot.backend.model.DeviceLimit;
 // // dùng cái nào thì xóa cmt cái đấy
 
 // import org.springframework.http.*;

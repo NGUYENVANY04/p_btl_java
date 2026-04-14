@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberCore Cấu hình ngưỡng</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/admin.css">     <link rel="stylesheet" href="css/threshold.css"> </head>
+<body>
+
+    <div class="grid-overlay"></div>
+
+    <div class="container animate-fade-in">
+        <div class="section-header">
+            <h2 class="section-title gradient-text">Cấu hình ngưỡng an toàn</h2>
+            <p class="subtitle" style="color: var(--text-secondary); margin-bottom: 30px; opacity: 0.8;">
+                Thiết lập giới hạn Công suất (W) và Dòng điện (A) để bảo vệ hệ thống.
+            </p>
+        </div>
+
+        <div id="thresholdSection">
+            <div class="loader-container">
+                <div class="spinner"></div>
+                <p style="margin-top: 20px; letter-spacing: 2px;">Đang đồng bộ giới hạn...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/component/ThresholdManager.js"></script>
+
+    <script>
+        // Khởi chạy khi trang tải xong
+        window.onload = function(){
+            if (typeof renderThresholdManager === "function") {
+                renderThresholdManager();
+            } else {
+                console.error("Lỗi: Không tìm thấy hàm renderThresholdManager. Kiểm tra lại đường dẫn file JS.");
+            }
+        }
+    </script>
+
+</body>
+</html>

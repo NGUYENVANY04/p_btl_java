@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberCore Quản lý thiết bị</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/admin.css">     <link rel="stylesheet" href="css/device.css">    </head>
+<body>
+
+    <div class="grid-overlay"></div>
+
+    <div class="container animate-fade-in">
+        <div class="section-header">
+            <h2 class="section-title gradient-text">Quản lý thiết bị</h2>
+            <p class="subtitle" style="color: var(--text-secondary); margin-bottom: 30px; opacity: 0.8;">
+                Quản lý danh sách thiết bị, thêm mới, sửa và xóa thông tin thiết bị từ hệ thống.
+            </p>
+        </div>
+
+        <div class="add-device-bar">
+            <div class="input-group">
+                <input type="text" id="newDeviceName" placeholder="Tên thiết bị (VD: Xưởng dập)">
+            </div>
+            <div class="input-group">
+                <input type="text" id="newDeviceLocation" placeholder="Vị trí (VD: Tầng 1)">
+            </div>
+            <button class="btn-add-submit" onclick="handleAddNewDevice()">
+                <i class="fas fa-plus"></i> Thêm
+            </button>
+        </div>
+
+        <div id="deviceCardGrid" class="device-card-grid">
+            <div class="loader-container">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/component/DeviceManager.js"></script>
+
+    <script>
+        // Khi trang web tải xong
+        window.onload = function(){
+            // Gọi hàm render từ DeviceManager.js
+            if (typeof renderDeviceManager === "function") {
+                renderDeviceManager();
+            } else {
+                console.error("Lỗi: Không tìm thấy hàm renderDeviceManager trong DeviceManager.js");
+            }
+        }
+    </script>
+
+</body>
+</html>

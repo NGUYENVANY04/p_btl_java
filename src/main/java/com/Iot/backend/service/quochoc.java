@@ -1,4 +1,4 @@
-package com.example.demo.service;
+package com.Iot.backend.service;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;

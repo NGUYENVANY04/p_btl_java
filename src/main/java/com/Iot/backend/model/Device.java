@@ -1,4 +1,4 @@
-package com.example.demo.model;
+package com.Iot.backend.model;
 
 import java.time.LocalDateTime;
 

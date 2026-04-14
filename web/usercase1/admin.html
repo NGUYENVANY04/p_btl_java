@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberCore Quản lý Năng Lượng</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/device.css">
+    <link rel="stylesheet" href="css/threshold.css">
+</head>
+<body>
+
+    <div class="grid-overlay"></div>
+
+    <div class="container animate-fade-in">
+        <!-- SECTION 1: QUẢN LÝ THIẾT BỊ -->
+        <div class="section-header">
+            <h2 class="section-title gradient-text">Quản lý thiết bị</h2>
+            <p class="subtitle" style="color: var(--text-secondary); margin-bottom: 30px; opacity: 0.8;">
+                Quản lý danh sách thiết bị, thêm mới, sửa và xóa thông tin thiết bị từ hệ thống.
+            </p>
+        </div>
+
+        <div class="add-device-bar">
+            <div class="input-group">
+                <input type="text" id="newDeviceName" placeholder="Tên thiết bị (VD: Xưởng dập)">
+            </div>
+            <div class="input-group">
+                <input type="text" id="newDeviceLocation" placeholder="Vị trí (VD: Tầng 1)">
+            </div>
+            <button class="btn-add-submit" onclick="handleAddNewDevice()">
+                <i class="fas fa-plus"></i> Thêm
+            </button>
+        </div>
+
+        <div id="deviceCardGrid" class="device-card-grid">
+            <div class="loader-container">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: CẤU HÌNH NGƯỠNG AN TOÀN -->
+        <div class="section-header" style="margin-top: 100px;"> <!-- khoảng cách lớn hơn -->
+            <h2 class="section-title gradient-text">Cấu hình ngưỡng an toàn</h2>
+            <p class="subtitle" style="color: var(--text-secondary); margin-bottom: 30px; opacity: 0.8;">
+                Thiết lập giới hạn Công suất (W) và Dòng điện (A) để bảo vệ hệ thống.
+            </p>
+        </div>
+
+        <div id="thresholdSection">
+            <div class="loader-container">
+                <div class="spinner"></div>
+                <p style="margin-top: 20px; letter-spacing: 2px;">Đang đồng bộ giới hạn...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/component/DeviceManager.js"></script>
+    <script src="js/component/ThresholdManager.js"></script>
+
+    <script>
+        // Khởi chạy khi trang tải xong
+        window.onload = function(){
+            // Render Device Manager
+            if (typeof renderDeviceManager === "function") {
+                renderDeviceManager();
+            } else {
+                console.error("Lỗi: Không tìm thấy hàm renderDeviceManager");
+            }
+
+            // Render Threshold Manager
+            if (typeof renderThresholdManager === "function") {
+                renderThresholdManager();
+            } else {
+                console.error("Lỗi: Không tìm thấy hàm renderThresholdManager");
+            }
+        }
+    </script>
+
+</body>
+</html>
