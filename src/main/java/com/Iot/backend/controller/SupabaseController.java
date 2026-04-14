@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import com.Iot.backend.service.quochoc;
 // import com.Iot.backend.service.ducthinh;
 // import com.Iot.backend.service.xuandat;
-// import com.Iot.backend.service.daocuong;
+import com.Iot.backend.service.daocuong;
 
 // import java.util.List;
 // import java.util.Map;
@@ -45,8 +45,8 @@ public class SupabaseController {
     // @Autowired
     // private xuandat xuanDatService;
 
-    // @Autowired
-    // private daocuong daoCuongService;
+    @Autowired
+    private daocuong daoCuongService;
     @GetMapping("/quochoc/energy/yearly")
     public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
@@ -62,6 +62,24 @@ public class SupabaseController {
     @GetMapping("/quochoc/data/day")
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));
+    }
+
+    // =========================
+    // DAO CUONG - TASK 3 & 4
+    // =========================
+    @GetMapping("/daocuong/devices/offline/check")
+    public ResponseEntity<?> checkOffline(@RequestParam(defaultValue = "5") Integer minutes) {
+        return ResponseEntity.ok(daoCuongService.checkOfflineDevices(minutes != null ? minutes : 5));
+    }
+
+    @GetMapping("/daocuong/threshold/check")
+    public ResponseEntity<?> checkThreshold() {
+        return ResponseEntity.ok(daoCuongService.checkThresholdAlerts());
+    }
+
+    @GetMapping("/daocuong/alerts")
+    public ResponseEntity<?> getAlerts(@RequestParam(defaultValue = "50") Integer limit) {
+        return ResponseEntity.ok(daoCuongService.getLatestAlerts(limit != null ? limit : 50));
     }
 
 }

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cảnh báo - Vượt ngưỡng / Mất kết nối</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../usercase1/css/admin.css">
+    <link rel="stylesheet" href="usercase2.css" />
+</head>
+
+<body>
+    <div class="grid-overlay"></div>
+
+    <div class="container animate-fade-in">
+        <div class="section-header">
+            <div class="header-row">
+                <div>
+                    <h2 class="section-title gradient-text">Cảnh báo</h2>
+                    <p class="subtitle">
+                        Vượt ngưỡng / mất kết nối
+                    </p>
+                </div>
+                <div class="clock">
+                    <div id="clock-time" class="clock-time">--:--:--</div>
+                    <div id="clock-date" class="clock-date">---, 00/00/0000</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <section class="panel">
+                <div class="panel-header">
+                    <h3 class="panel-title">Cấu hình</h3>
+                </div>
+
+                <div class="form-grid">
+                    <label class="field">
+                        <span class="field-label">Base API</span>
+                        <input id="api-base" type="text" value="http://localhost:8080" />
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Offline threshold (minutes)</span>
+                        <input id="offline-minutes" type="number" min="1" value="5" />
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Alert list limit</span>
+                        <input id="alerts-limit" type="number" min="1" max="200" value="50" />
+                    </label>
+
+                    <label class="field">
+                        <span class="field-label">Auto refresh (seconds)</span>
+                        <input id="refresh-seconds" type="number" min="0" value="10" />
+                        <span class="field-hint">Đặt 0 để tắt auto refresh.</span>
+                    </label>
+                </div>
+
+                <div class="actions">
+                    <button id="btn-check-now" class="btn-primary">
+                        <i class="fas fa-bolt"></i> Check ngay
+                    </button>
+                    <button id="btn-refresh-alerts" class="btn-secondary">
+                        <i class="fas fa-bell"></i> Load alerts
+                    </button>
+                    <button id="btn-toggle-auto" class="btn-secondary">
+                        Auto: ON
+                    </button>
+                </div>
+
+                <div class="status-row">
+                    <div id="status-pill" class="status-pill">
+                        <span id="status-dot" class="status-dot"></span>
+                        <span id="status-text">Chưa chạy</span>
+                    </div>
+                </div>
+
+                <div id="error-box" class="error-box hidden">
+                    <div class="error-title">Lỗi</div>
+                    <div id="error-text" class="error-text"></div>
+                </div>
+            </section>
+
+            <section class="panel panel-span-2">
+                <div class="panel-header panel-header-split">
+                    <div>
+                        <h3 class="panel-title">Thiết bị offline</h3>
+                        <div class="panel-subtitle">
+                            Nguồn: <code>/api/daocuong/devices/offline/check</code>
+                        </div>
+                    </div>
+                    <div class="panel-metric">
+                        <div class="metric-label">Số thiết bị</div>
+                        <div id="offline-count" class="metric-value">0</div>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Device ID</th>
+                                <th>Last seen</th>
+                                <th>Minutes ago</th>
+                            </tr>
+                        </thead>
+                        <tbody id="offline-tbody">
+                            <tr>
+                                <td class="empty" colspan="3">Chưa có dữ liệu.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel">
+            <div class="panel-header panel-header-split">
+                <div>
+                    <h3 class="panel-title">Thiết bị vượt ngưỡng</h3>
+                    <div class="panel-subtitle">
+                        Nguồn: <code>/api/daocuong/threshold/check</code>
+                    </div>
+                </div>
+                <div class="panel-metric">
+                    <div class="metric-label">Số thiết bị</div>
+                    <div id="over-count" class="metric-value">0</div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Power</th>
+                            <th>Max power</th>
+                            <th>Current</th>
+                            <th>Max current</th>
+                        </tr>
+                    </thead>
+                    <tbody id="over-tbody">
+                        <tr>
+                            <td class="empty" colspan="5">Chưa có dữ liệu.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header panel-header-split">
+                <div>
+                    <h3 class="panel-title">Alerts (mới nhất)</h3>
+                    <div class="panel-subtitle">
+                        Nguồn: <code>/api/daocuong/alerts</code>
+                    </div>
+                </div>
+                <div class="panel-metric">
+                    <div class="metric-label">Tổng hiển thị</div>
+                    <div id="alerts-count" class="metric-value">0</div>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Read?</th>
+                        </tr>
+                    </thead>
+                    <tbody id="alerts-tbody">
+                        <tr>
+                            <td class="empty" colspan="5">Chưa có dữ liệu.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="hint">
+                Gợi ý: bấm <strong>Check ngay</strong> để server chạy kiểm tra offline + vượt ngưỡng và tự tạo alert nếu cần.
+            </div>
+        </section>
+    </div>
+
+    <script src="usercase2.js"></script>
+</body>
+
+</html>

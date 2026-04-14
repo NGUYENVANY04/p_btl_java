@@ -1,0 +1,331 @@
+/* Theme synced with usercase1/device.html (admin.css) */
+
+body {
+  font-family: "Rajdhani", "Inter", "Segoe UI", sans-serif;
+}
+
+.header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.clock {
+  text-align: right;
+  opacity: 0.95;
+}
+
+.clock-time {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+}
+
+.clock-date {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  margin-top: 4px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 22px;
+  margin-bottom: 22px;
+}
+
+.panel {
+  background: rgba(26, 35, 50, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 22px;
+}
+
+.panel-span-2 {
+  grid-column: 2 / 3;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.panel-header-split {
+  align-items: flex-end;
+}
+
+.panel-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  text-shadow: 0 0 14px rgba(0, 245, 255, 0.16);
+}
+
+.panel-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.85;
+  margin-top: 6px;
+}
+
+.panel-subtitle code {
+  background: rgba(0, 245, 255, 0.12);
+  border: 1px solid rgba(0, 245, 255, 0.25);
+  padding: 2px 6px;
+  border-radius: 6px;
+  font-family: "Rajdhani", monospace;
+}
+
+.panel-metric {
+  text-align: right;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.field input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 2px solid rgba(0, 245, 255, 0.2);
+  color: var(--text-primary);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  transition: var(--transition-fast);
+}
+
+.field input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 12px rgba(0, 245, 255, 0.35);
+}
+
+.field-hint {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.85;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+  color: var(--text-on-accent);
+  border: none;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  letter-spacing: 0.08em;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 245, 255, 0.35);
+}
+
+.btn-secondary {
+  background: rgba(0, 245, 255, 0.08);
+  color: var(--accent-blue);
+  border: 2px solid rgba(0, 245, 255, 0.25);
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-weight: 800;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  letter-spacing: 0.06em;
+}
+
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 245, 255, 0.25);
+  background: rgba(0, 245, 255, 0.14);
+}
+
+.status-row {
+  margin-top: 14px;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 20, 25, 0.55);
+  border: 1px solid rgba(0, 245, 255, 0.25);
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(160, 179, 209, 0.5);
+  box-shadow: 0 0 10px rgba(0, 245, 255, 0.12);
+}
+
+.error-box {
+  margin-top: 14px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 107, 107, 0.35);
+  background: rgba(255, 107, 107, 0.12);
+  padding: 14px 14px;
+}
+
+.error-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd1d1;
+  opacity: 0.9;
+}
+
+.error-text {
+  margin-top: 6px;
+  color: #ffe7e7;
+  word-break: break-word;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.table-wrap {
+  border: 1px solid rgba(0, 245, 255, 0.18);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  background: rgba(10, 26, 46, 0.25);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+}
+
+.table thead th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: rgba(15, 20, 25, 0.55);
+  border-bottom: 1px solid rgba(0, 245, 255, 0.12);
+}
+
+.table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0, 245, 255, 0.06);
+  color: var(--text-primary);
+}
+
+.table tbody tr:hover td {
+  background: rgba(0, 245, 255, 0.05);
+}
+
+.empty {
+  color: var(--text-secondary) !important;
+  opacity: 0.85;
+}
+
+.hint {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  opacity: 0.9;
+  letter-spacing: 0.02em;
+}
+
+/* Make number inputs consistent */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* Slightly nicer scrollbars on supported browsers */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 245, 255, 0.35) rgba(10, 26, 46, 0.25);
+}
+
+*::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(0, 245, 255, 0.25);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-track {
+  background: rgba(10, 26, 46, 0.25);
+}
+
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .panel-span-2 {
+    grid-column: auto;
+  }
+  .table {
+    min-width: 640px;
+  }
+}
+
