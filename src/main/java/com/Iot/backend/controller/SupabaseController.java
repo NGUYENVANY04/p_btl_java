@@ -1,14 +1,10 @@
-package com.example.demo.controller;
+package com.Iot.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-// import com.example.demo.service.vany;
-import com.example.demo.service.quochoc;
-// import com.example.demo.service.ducthinh;
-// import com.example.demo.service.xuandat;
-// import com.example.demo.service.daocuong;
+import com.Iot.backend.service.quochoc;
 
 // import java.util.List;
 // import java.util.Map;
@@ -62,6 +58,29 @@ public class SupabaseController {
     @GetMapping("/quochoc/data/day")
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));
+    }
+
+    @GetMapping("/quochoc/alerts")
+    public ResponseEntity<?> getAllAlert() {
+        return ResponseEntity.ok(quochocService.getAllAlerts());
+    }
+
+    // ✅ Theo device
+    @GetMapping("/quochoc/alerts/device")
+    public ResponseEntity<?> getAlertByDevice(@RequestParam(required = false) Integer deviceId) {
+        return ResponseEntity.ok(quochocService.getAlertsByDevice(deviceId));
+    }
+
+    // ✅ Chưa đọc
+    @GetMapping("/quochoc/alerts/unread")
+    public ResponseEntity<?> getUnreadAlert() {
+        return ResponseEntity.ok(quochocService.getUnreadAlerts());
+    }
+
+    // ✅ Theo ngày
+    @GetMapping("/quochoc/alerts/day")
+    public ResponseEntity<?> getAlertByDay(@RequestParam String day) {
+        return ResponseEntity.ok(quochocService.getAlertsByDay(day));
     }
 
 }

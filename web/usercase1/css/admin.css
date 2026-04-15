@@ -1,0 +1,258 @@
+
+:root {
+
+    /* =========================================================
+       1️⃣ COLOR PALETTE (IMPROVED CONTRAST)
+       -> tối ưu cho readability và thẩm mỹ, BRIGHTER VERSION
+       ========================================================= */
+    --bg-app: #0a1a2e;      
+    --bg-panel: #1a2332;    
+    --bg-input: #0f1419;    
+
+
+    /* ===== MÀU CHỮ (IMPROVED CONTRAST) ===== */
+
+    --text-primary: #ffffff;      
+    --text-secondary: #a0b3d1;   
+    --text-on-accent: #000000;   
+
+
+    /* ===== MÀU NEON NHẤN (BRIGHTER GLOW) ===== */
+
+    --accent-blue: #00f5ff;     
+    --accent-blue-glow: 0 0 20px rgba(0, 245, 255, 0.6); 
+
+    --accent-gold: #ffcc00;      
+    --accent-gold-glow: 0 0 20px rgba(255, 204, 0, 0.7);
+
+    --accent-teal: #00e5e5;       
+    --accent-red: #ff6b6b;       
+
+
+    /* ===== UI CHUNG (PROFESSIONAL SPACING) ===== */
+
+    --border-color: rgba(0, 245, 255, 0.25); 
+    --radius-lg: 16px;           
+    --radius-md: 8px;            
+
+
+    /* đổ bóng sci-fi (shadow + glow nhẹ bên trong) */
+    --shadow-card: 0 12px 40px rgba(0,0,0,0.8),
+                   inset 0 0 25px rgba(0,245,255,0.05);
+
+
+    /* ===== ANIMATION (SMOOTHER) ===== */
+    --transition-fast: 0.2s ease-out;
+    --transition-smooth: 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+
+
+/* =========================================================
+   2️⃣ RESET CSS
+   -> tránh lỗi spacing mặc định của trình duyệt
+   ========================================================= */
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
+}
+
+
+
+/* =========================================================
+   3️⃣ BODY BACKGROUND
+   -> tạo nền futuristic có chiều sâu, BRIGHTER VERSION
+   ========================================================= */
+body {
+    background-color: var(--bg-app);
+
+    background-image: radial-gradient(circle at center, #1a2e4a 0%, #0a1a2e 100%);
+
+    color: var(--text-primary);
+
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+   
+
+    line-height: 1.65; 
+    min-height: 100vh;
+    overflow-x: hidden;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+
+/* =========================================================
+   4️⃣ GRID BACKGROUND ẨN PHÍA SAU (rất quan trọng)
+   -> tạo cảm giác dashboard công nghệ, BRIGHTER VERSION
+   ========================================================= */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+
+    background-image:
+        linear-gradient(rgba(0,245,255,0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,245,255,0.08) 1px, transparent 1px);
+
+    background-size: 45px 45px;
+    z-index: -1;
+    pointer-events: none;
+}
+
+
+
+/* =========================================================
+   5️⃣ CONTAINER CHUNG
+   ========================================================= */
+.container { 
+    max-width: 1400px; 
+    margin: 0 auto; 
+    padding: 50px 25px; 
+}
+
+.section-header {
+    margin-bottom: 45px;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    line-height: 1.8;
+    max-width: 820px;
+    opacity: 0.88;
+    letter-spacing: 0.01em;
+}
+
+
+
+/* =========================================================
+   6️⃣ TITLE SECTION (Tiêu đề lớn)
+   ========================================================= */
+h2.section-title {
+    font-size: clamp(2rem, 3.5vw, 2.6rem);
+    font-weight: 700;
+    margin-bottom: 14px;
+    letter-spacing: -0.01em;
+    text-transform: none;
+    color: var(--accent-blue);
+    text-shadow: 0 0 14px rgba(0, 245, 255, 0.16);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+/* thanh neon "|" trước tiêu đề */
+h2.section-title::before {
+    content: '';
+    width: 5px;
+    height: 1.35em;
+    background: linear-gradient(135deg, var(--accent-blue), var(--accent-teal));
+    box-shadow: var(--accent-blue-glow);
+    border-radius: 2px;
+}
+
+
+
+/* =========================================================
+   7️⃣ ANIMATION FADE IN
+   -> dùng khi load component
+   ========================================================= */
+.animate-fade-in {
+    animation: fadeIn 0.6s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+
+
+/* =========================================================
+   8️⃣ LOADING SPINNER (hiệu ứng scanning)
+   ========================================================= */
+.loader-container {
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:300px;
+
+    color:var(--accent-blue);
+    letter-spacing:3px;
+    font-weight:600;
+}
+
+/* vòng tròn xoay */
+.spinner {
+    width:45px;
+    height:45px;
+
+    border:3px solid rgba(0,229,255,0.1);
+    border-top:3px solid var(--accent-blue);
+
+    border-radius:50%;
+    margin-bottom:20px;
+
+    animation: spin 0.8s cubic-bezier(0.5,0.1,0.4,0.9) infinite;
+    filter: drop-shadow(0 0 10px var(--accent-blue));
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+
+
+/* =========================================================
+   9️⃣ GRADIENT TEXT
+   -> dùng cho số liệu quan trọng
+   ========================================================= */
+.gradient-text {
+    background: linear-gradient(135deg,var(--accent-blue),var(--accent-teal));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+
+
+/* =========================================================
+   🔟 HEADER SECTION
+   ========================================================= */
+.section-header {
+    margin-bottom:40px;
+}
+
+.section-header .subtitle {
+    color:var(--text-secondary);
+    font-size:0.95rem;
+    opacity:0.8;
+    margin-bottom:30px;
+}
+
+
+
+/* =========================================================
+   11️⃣ RESPONSIVE
+   -> tối ưu tablet & mobile
+   ========================================================= */
+@media (max-width:1024px){
+    .container{ padding:30px 15px; }
+    h2.section-title{ font-size:1.5rem; }
+}
+
+@media (max-width:768px){
+    .container{ padding:20px 10px; }
+    h2.section-title{ font-size:1.3rem; }
+
+   
+    .device-card-grid,
+    .threshold-grid {
+        grid-template-columns:1fr;
+    }
+}

@@ -1,4 +1,4 @@
-let currentMode = 'today';
+let currentMode = 'month';
 let energyChart;
 
 /**
