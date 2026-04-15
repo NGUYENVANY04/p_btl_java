@@ -7,7 +7,7 @@ async function renderDeviceManager() {
         console.error("Lỗi: Không tìm thấy vùng hiển thị thiết bị. Vui lòng kiểm tra id 'deviceSection' hoặc 'deviceCardGrid'.");
         return;
     }
-    
+
     // 1. Hiệu ứng Loading "Scanning"
     container.innerHTML = `
         <div class="loader-container">
@@ -24,9 +24,9 @@ async function renderDeviceManager() {
         // Nếu là deviceCardGrid (device.html), chỉ render các card
         // Nếu là deviceSection (demo.html), render toàn bộ
         const isStandalone = document.getElementById("deviceCardGrid");
-        
+
         let htmlTemplate;
-        
+
         if (isStandalone) {
             // Chỉ render các device card cho device.html
             htmlTemplate = devices.map(device => `
@@ -50,9 +50,9 @@ async function renderDeviceManager() {
                         </div>
                     </div>
 
-                    <div class="card-footer">
+                    <div class="card-footer">   
                         <button class="btn-update" onclick="editDevice(${device.id})">
-                            <i class="fas fa-edit"></i>
+                        <i class="fas fa-edit"></i>
                             <span>SỬA</span>
                         </button>
                         <button class="btn-delete" onclick="confirmDelete(${device.id})">
@@ -89,7 +89,7 @@ async function renderDeviceManager() {
                             </div>
 
                             <div class="card-actions">
-                                <button class="action-btn edit" onclick="editDevice(${device.id})">
+                                <button class="action-btn edit" onclick="updateDevice(${device.id})">
                                     SỬA
                                 </button>
                                 <button class="action-btn delete" onclick="confirmDelete(${device.id})">
@@ -141,7 +141,7 @@ async function handleAddNewDevice() {
     // Hiệu ứng nút bấm khi đang xử lý
     const btn = document.querySelector('.btn-add-submit');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>...';
-    
+
     try {
         await createDevice({ name, location }); // Hàm trong api.js
         document.getElementById('newDeviceName').value = '';
@@ -155,29 +155,15 @@ async function handleAddNewDevice() {
     }
 }
 
-/**
- * Xử lý sửa thiết bị
- */
+
 async function editDevice(id) {
     const device = await getDevices().then(devices => devices.find(d => d.id === id));
     const newName = prompt("Tên thiết bị:", device.name);
     if (newName === null) return;
-    
+
     const newLocation = prompt("Vị trí:", device.location);
     if (newLocation === null) return;
-    
+
     await updateDevice(id, { name: newName, location: newLocation });
     renderDeviceManager();
-}
-
-/**
- * Xóa thiết bị
- */
-async function deleteDevice(id) {
-    try {
-        const response = await fetch(`${API}/devices/${id}`, { method: "DELETE" });
-        if (!response.ok) throw new Error("Failed to delete");
-    } catch (err) {
-        console.error("Delete error:", err);
-    }
 }

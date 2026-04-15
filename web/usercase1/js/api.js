@@ -1,4 +1,4 @@
-const API = "http://localhost:8000/api";
+const API = "http://localhost:8080/api/devices";
 
 // Mock data for demo purposes
 let mockDevices = [
@@ -14,40 +14,60 @@ let mockLimits = [
 
 //// DEVICE API ////
 
-async function getDevices(){
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return mockDevices;
+async function getDevices() {
+    const res = await fetch(API);
+    if (!res.ok) throw new Error("Failed to fetch devices");
+    return await res.json();
 }
 
-async function createDevice(data){
-    const newId = mockDevices.length > 0 ? Math.max(...mockDevices.map(d => d.id)) + 1 : 1;
-    mockDevices.push({ id: newId, name: data.name, location: data.location, status: "online" });
-    await new Promise(resolve => setTimeout(resolve, 100));
-}
+async function createDevice(data) {
+    const res = await fetch(API, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: data.name,
+            location: data.location,
+            status: "true"
+        })
+    });
 
-async function deleteDevice(id){
-    mockDevices = mockDevices.filter(d => d.id !== id);
-    await new Promise(resolve => setTimeout(resolve, 100));
-}
-
-async function updateDevice(id, data){
-    const device = mockDevices.find(d => d.id === id);
-    if (device) {
-        device.name = data.name;
-        device.location = data.location;
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
+
+    return await res.json(); // nhận device vừa tạo
+}
+/**
+ * Xóa thiết bị
+ */
+async function deleteDevice(id) {
+    try {
+        const response = await fetch(`${API}/${id}`, { method: "DELETE" });
+        if (!response.ok) throw new Error("Failed to delete");
+    } catch (err) {
+        console.error("Delete error:", err);
+    }
+}
+
+async function updateDevice(id, data) {
+    const res = await axios.put(`${API}/devices/${id}`, {
+        name: data.name,
+        location: data.location
+    });
+    return res.data;
 }
 
 //// DEVICE LIMIT API ////
 
-async function getLimits(){
+async function getLimits() {
     await new Promise(resolve => setTimeout(resolve, 100));
     return mockLimits;
 }
 
-async function setLimit(data){
+async function setLimit(data) {
     const existing = mockLimits.find(l => l.device_id === data.device_id);
     if (existing) {
         existing.max_power = data.max_power;
