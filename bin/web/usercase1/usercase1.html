@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="p-6 bg-slate-50">
+    <h2 class="text-xl font-bold mb-6 text-slate-800 border-b pb-2">Thiết lập Thiết bị & Ngưỡng</h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow-sm border">
+            <h3 class="font-semibold mb-4 text-blue-600">Thêm thiết bị mới</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-slate-500">Tên thiết bị</label>
+                    <input type="text" class="w-full border rounded p-2 mt-1 focus:ring-2 focus:ring-blue-400 outline-none" placeholder="Ví dụ: Điều hòa tầng 1">
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-500">Device ID (từ Hardware)</label>
+                    <input type="number" class="w-full border rounded p-2 mt-1 outline-none" placeholder="Ví dụ: 105">
+                </div>
+                <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">Thêm thiết bị</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-sm border text-slate-800">
+            <h3 class="font-semibold mb-4 text-orange-600">Cài đặt ngưỡng cảnh báo</h3>
+            <div class="space-y-4">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-500">Điện áp Max (V)</label>
+                        <input type="number" value="240" class="w-full border rounded p-2 mt-1 outline-none">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-sm text-slate-500">Điện áp Min (V)</label>
+                        <input type="number" value="180" class="w-full border rounded p-2 mt-1 outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm text-slate-500">Dòng điện tối đa (A)</label>
+                    <input type="number" value="15" class="w-full border rounded p-2 mt-1 outline-none">
+                </div>
+                <button class="w-full bg-orange-500 text-white py-2 rounded-lg hover:bg-orange-600 transition">Lưu cấu hình ngưỡng</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
