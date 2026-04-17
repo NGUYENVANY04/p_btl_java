@@ -1,0 +1,278 @@
+<!-- <!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Giám Sát Điện Năng - PTIT</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --card-bg: #1e293b;
+            --neon-cyan: #00f2fe;
+            --text-gray: #94a3b8;
+            --border-color: #334155;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #ffffff;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: bold;
+            color: var(--neon-cyan) !important;
+            letter-spacing: 1px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            border-color: var(--neon-cyan);
+        }
+
+        .card h6 {
+            color: var(--text-gray);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .display-value {
+            color: var(--neon-cyan);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(0, 242, 254, 0.3);
+        }
+
+        .table-card {
+            border-top: 3px solid var(--neon-cyan);
+        }
+
+        .table {
+            color: #cbd5e1;
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--text-gray);
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 500;
+            padding: 15px;
+        }
+
+        .table tbody td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px;
+            vertical-align: middle;
+        }
+
+        .badge-custom {
+            background: rgba(0, 242, 254, 0.1);
+            color: var(--neon-cyan);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+            padding: 5px 10px;
+        }
+
+        .status-online {
+            color: #10b981;
+            font-size: 0.9rem;
+        }
+
+        .unit {
+            font-size: 1rem;
+            color: var(--text-gray);
+            font-weight: normal;
+        }
+
+        .section-title {
+            border-left: 4px solid var(--neon-cyan);
+            padding-left: 15px;
+            margin-bottom: 25px;
+            color: #f8fafc;
+        }
+
+        .new-row-flash {
+            animation: flash-bg 2s;
+        }
+
+        @keyframes flash-bg {
+            0% {
+                background-color: rgba(0, 242, 254, 0.2);
+            }
+
+            100% {
+                background-color: transparent;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark mb-5">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fa-solid fa-microchip me-2"></i> IOT DASHBOARD
+            </a>
+            <div class="ms-auto text-end">
+                <div class="status-online">
+                    <i class="fa-solid fa-circle fa-xs me-1"></i> Hệ thống: <span id="status-text">Trực tuyến</span>
+                </div>
+                <small class="text-muted" id="real-clock">--:--:--</small>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="section-title">
+            <h2 class="fw-bold">Quản lý dữ liệu cảm biến</h2>
+            <p class="text-muted small">Theo dõi thông số điện năng thời gian thực từ thiết bị</p>
+        </div>
+
+        <div class="row mb-5 g-4 text-center">
+            <div class="col-md-4">
+                <div class="card p-4 shadow-sm">
+                    <h6><i class="fa-solid fa-bolt me-2"></i> Điện áp trung bình</h6>
+                    <h2 class="display-value mt-2" id="v-display">-- <span class="unit">V</span></h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 shadow-sm">
+                    <h6><i class="fa-solid fa-gauge-high me-2"></i> Công suất tức thời</h6>
+                    <h2 class="display-value mt-2" id="p-display"
+                        style="color: #10b981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);">-- <span
+                            class="unit">W</span></h2>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card p-4 shadow-sm">
+                    <h6><i class="fa-solid fa-envelope me-2"></i> Tổng số bản tin</h6>
+                    <h2 class="display-value mt-2" id="msg-count"
+                        style="color: #f59e0b; text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);"
+                        th:text="${dsTinNhan.size()}">0</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="card table-card shadow">
+            <div class="card-header bg-transparent py-3 border-0">
+                <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list-ul me-2 text-info"></i> Nhật ký dữ liệu chi tiết
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover" id="data-table">
+                        <thead>
+                            <tr>
+                                <th class="ps-4">ID</th>
+                                <th>Điện áp (V)</th>
+                                <th>Công suất (P)</th>
+                                <th>Dòng điện (I)</th>
+                                <th>Thời gian hệ thống</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="msg : ${dsTinNhan}">
+                                <td class="ps-4 text-info fw-bold" th:text="${msg.id}">#---</td>
+                                <td><span class="badge badge-custom" th:text="${msg.v + ' V'}">-- V</span></td>
+                                <td><span class="badge badge-custom" style="color: #10b981; border-color: #10b98133;"
+                                        th:text="${msg.p + ' W'}">-- W</span></td>
+                                <td><span class="badge badge-custom" style="color: #f59e0b; border-color: #f59e0b33;"
+                                        th:text="${msg.i + ' A'}">-- A</span></td>
+                                <td th:text="${#temporals.format(msg.timestamp, 'HH:mm:ss - dd/MM/yyyy')}">--:--:--</td>
+                                <td><span class="text-success small"><i class="fa-solid fa-circle-check me-1"></i> Đã
+                                        lưu</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center mt-5 mb-4 text-muted small">
+            <hr class="mb-4" style="border-color: var(--border-color);">
+            &copy; 2026 Java IoT Project - PTIT - Dashboard Monitor
+        </footer>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+
+    <script>
+        // Khởi tạo các biến
+        var socket = new SockJS('/ws');
+        var stompClient = Stomp.over(socket);
+        var msgCountElement = document.getElementById('msg-count');
+        var messageCounter = parseInt(msgCountElement.innerText) || 0;
+
+        // Tắt log loằng ngoằng của STOMP trong Console
+        stompClient.debug = null;
+
+        stompClient.connect({}, function (frame) {
+            console.log('✅ Đã kết nối WebSocket: ' + frame);
+            document.getElementById('status-text').innerText = "Trực tuyến (Live)";
+
+            stompClient.subscribe('/topic/messages', function (message) {
+                console.log("📥 Nhận dữ liệu mới:", message.body);
+                var data = JSON.parse(message.body);
+
+                // 1. Cập nhật các con số (Dùng innerHTML để giữ lại thẻ span unit)
+                document.getElementById('v-display').innerHTML = data.v + ' <span class="unit">V</span>';
+                document.getElementById('p-display').innerHTML = data.p + ' <span class="unit">W</span>';
+
+                // 2. Cập nhật tổng số bản tin
+                messageCounter++;
+                msgCountElement.innerText = messageCounter;
+
+                // 3. Thêm dòng mới vào bảng
+                var tableBody = document.querySelector("#data-table tbody");
+                var newRow = tableBody.insertRow(0);
+                newRow.className = "new-row-flash";
+
+                var now = new Date();
+                var timeStr = now.getHours().toString().padStart(2, '0') + ":" +
+                    now.getMinutes().toString().padStart(2, '0') + ":" +
+                    now.getSeconds().toString().padStart(2, '0') + " - " +
+                    now.toLocaleDateString('vi-VN');
+
+                newRow.innerHTML = `
+                    <td class="ps-4 text-info fw-bold">#NEW</td>
+                    <td><span class="badge badge-custom">${data.v} V</span></td>
+                    <td><span class="badge badge-custom" style="color: #10b981; border-color: #10b98133;">${data.p} W</span></td>
+                    <td><span class="badge badge-custom" style="color: #f59e0b; border-color: #f59e0b33;">${data.i} A</span></td>
+                    <td>${timeStr}</td>
+                    <td><span class="text-success small"><i class="fa-solid fa-bolt me-1"></i> Realtime</span></td>
+                `;
+            });
+        }, function (error) {
+            console.log('❌ Lỗi kết nối: ' + error);
+            document.getElementById('status-text').innerText = "Mất kết nối!";
+            document.getElementById('status-text').parentElement.style.color = "#ef4444";
+        });
+
+        // Đồng hồ hệ thống
+        setInterval(() => {
+            document.getElementById('real-clock').innerText = new Date().toLocaleString('vi-VN');
+        }, 1000);
+    </script>
+</body>
+
+</html> -->

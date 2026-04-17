@@ -44,7 +44,7 @@ public class DemoApplication {
 		return args -> {
 			try {
 				client.connect();
-				System.out.println("✅ SERVER PTIT ĐÃ ONLINE!");
+				System.out.println(" SERVER PTIT ĐÃ ONLINE!");
 				client.toAsync().subscribeWith()
 						.topicFilter("ptit/test/request")
 						.callback(publish -> {
@@ -57,13 +57,13 @@ public class DemoApplication {
 										json.optDouble("i", 0.0),
 										LocalDateTime.now()));
 								messagingTemplate.convertAndSend("/topic/messages", payload);
-								System.out.println("📩 Đã nhận: " + payload);
+								System.out.println(" Đã nhận: " + payload);
 							} catch (Exception e) {
 								e.printStackTrace();
 							}
 						}).send();
 			} catch (Exception e) {
-				System.err.println("❌ Lỗi: " + e.getMessage());
+				System.err.println(" Lỗi: " + e.getMessage());
 			}
 		};
 	}

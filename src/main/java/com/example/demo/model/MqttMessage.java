@@ -9,18 +9,18 @@ public class MqttMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Double p;
-    private Double v;
-    private Double i;
+    private Double power;
+    private Double voltage;
+    private Double current;
     private LocalDateTime timestamp;
 
     public MqttMessage() {
     }
 
-    public MqttMessage(Double p, Double v, Double i, LocalDateTime timestamp) {
-        this.p = p;
-        this.v = v;
-        this.i = i;
+    public MqttMessage(Double power, Double voltage, Double current, LocalDateTime timestamp) {
+        this.power = power;
+        this.voltage = voltage;
+        this.current = current;
         this.timestamp = timestamp;
     }
 
@@ -29,16 +29,16 @@ public class MqttMessage {
         return id;
     }
 
-    public Double getP() {
-        return p;
+    public Double getPower() {
+        return power;
     }
 
-    public Double getV() {
-        return v;
+    public Double getVoltage() {
+        return voltage;
     }
 
-    public Double getI() {
-        return i;
+    public Double getCurrent() {
+        return current;
     }
 
     public LocalDateTime getTimestamp() {
@@ -50,16 +50,16 @@ public class MqttMessage {
         this.id = id;
     }
 
-    public void setP(Double p) {
-        this.p = p;
+    public void setPower(Double power) {
+        this.power = power;
     }
 
-    public void setV(Double v) {
-        this.v = v;
+    public void setVoltage(Double voltage) {
+        this.voltage = voltage;
     }
 
-    public void setI(Double i) {
-        this.i = i;
+    public void setCurrent(Double current) {
+        this.current = current;
     }
 
     public void setTimestamp(LocalDateTime timestamp) {

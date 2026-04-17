@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +22,7 @@
             justify-content: center;
             transition: all 0.3s ease;
             cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             border: none;
             line-height: 1.2;
         }
@@ -29,7 +30,7 @@
         .nav-button:hover {
             transform: scale(1.02);
             filter: brightness(1.1);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
 
         .nav-button:active {
@@ -39,7 +40,8 @@
         /* Sidebar và Vùng chứa nội dung */
         .sidebar {
             width: 300px;
-            background-color: #d1d5db; /* Màu xám nhạt */
+            background-color: #d1d5db;
+            /* Màu xám nhạt */
             height: 100vh;
             padding: 40px 20px;
             display: flex;
@@ -64,6 +66,7 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="sidebar">
@@ -79,7 +82,7 @@
             3
         </button>
 
-        <button class="nav-button" onclick="changePage('usercase4/usercase4.html')">
+        <button class="nav-button" onclick="window.location.href='http://127.0.0.1:8081/messages'">
             4
         </button>
         <button class="nav-button" onclick="changePage('usercase5/usercase5.html')">
@@ -98,4 +101,5 @@
     </script>
 
 </body>
+
 </html>
