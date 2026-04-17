@@ -27,6 +27,15 @@ package com.Iot.backend.service;
  * // }
  */
 
+import com.Iot.backend.dto.OfflineCheckResultDto;
+import com.Iot.backend.dto.OfflineDeviceDto;
+import com.Iot.backend.dto.OverLimitDeviceDto;
+import com.Iot.backend.dto.ThresholdCheckResultDto;
+import com.Iot.backend.model.Alert;
+import com.Iot.backend.model.DeviceLimit;
+import com.Iot.backend.model.DeviceStatus;
+import com.Iot.backend.model.SensorData;
+
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -39,7 +48,9 @@ import org.springframework.web.client.HttpStatusCodeException;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -118,6 +129,58 @@ public class daocuong {
         }
     }
 
+    private LocalDateTime parseSupabaseTimeToLocalDateTime(Object createdAtRaw) {
+        Instant instant = parseSupabaseTimeToInstant(createdAtRaw);
+        return instant != null ? LocalDateTime.ofInstant(instant, ZoneOffset.UTC) : null;
+    }
+
+    private Integer toInt(Object value) {
+        return value instanceof Number ? ((Number) value).intValue() : null;
+    }
+
+    private Float toFloat(Object value) {
+        return value instanceof Number ? ((Number) value).floatValue() : null;
+    }
+
+    private Long toLong(Object value) {
+        return value instanceof Number ? ((Number) value).longValue() : null;
+    }
+
+    private DeviceStatus toDeviceStatus(Map<String, Object> row) {
+        DeviceStatus status = new DeviceStatus();
+        status.setDevice_id(toInt(row.get("device_id")));
+        status.setLast_seen(parseSupabaseTimeToLocalDateTime(row.get("last_seen")));
+        status.setIs_online(row.get("is_online") instanceof Boolean ? (Boolean) row.get("is_online") : null);
+        return status;
+    }
+
+    private DeviceLimit toDeviceLimit(Map<String, Object> row) {
+        DeviceLimit limit = new DeviceLimit();
+        limit.setDevice_id(toInt(row.get("device_id")));
+        limit.setMax_power(toFloat(row.get("max_power")));
+        limit.setMax_current(toFloat(row.get("max_current")));
+        return limit;
+    }
+
+    private SensorData toSensorData(Map<String, Object> row) {
+        SensorData sensor = new SensorData();
+        sensor.setDevice_id(toInt(row.get("device_id")));
+        sensor.setPower(toFloat(row.get("power")));
+        sensor.setCurrent(toFloat(row.get("current")));
+        sensor.setCreated_at(parseSupabaseTimeToLocalDateTime(row.get("created_at")));
+        return sensor;
+    }
+
+    private Alert toAlert(Map<String, Object> row) {
+        Alert alert = new Alert();
+        alert.setId(toLong(row.get("id")));
+        alert.setDevice_id(toInt(row.get("device_id")));
+        alert.setType(row.get("type") != null ? String.valueOf(row.get("type")) : null);
+        alert.setMessage(row.get("message") != null ? String.valueOf(row.get("message")) : null);
+        alert.setIs_read(row.get("is_read") instanceof Boolean ? (Boolean) row.get("is_read") : null);
+        return alert;
+    }
+
     private boolean hasUnreadAlert(Integer deviceId, String type) {
         if (deviceId == null) return false;
         String q = String.format(
@@ -165,33 +228,35 @@ public class daocuong {
      * - Nếu last_seen quá thời gian (minutes) => offline
      * - Nếu chưa có alert OFFLINE chưa đọc => tạo alert
      */
-    public Map<String, Object> checkOfflineDevices(int minutes) {
+    public OfflineCheckResultDto checkOfflineDevices(int minutes) {
         int thresholdMinutes = Math.max(minutes, 1);
         Instant now = Instant.now();
 
         warnings.clear();
-        List<Map<String, Object>> statuses = getListWithFallback(
+        List<Map<String, Object>> rawStatuses = getListWithFallback(
                 tableDeviceStatus,
                 new String[] { "device_statuses" },
                 "?select=device_id,last_seen,is_online"
         );
-        List<Map<String, Object>> offline = new ArrayList<>();
+        List<OfflineDeviceDto> offline = new ArrayList<>();
         int createdAlerts = 0;
 
-        for (Map<String, Object> row : statuses) {
-            Integer deviceId = row.get("device_id") instanceof Number ? ((Number) row.get("device_id")).intValue() : null;
-            Instant lastSeen = parseSupabaseTimeToInstant(row.get("last_seen"));
-            if (deviceId == null || lastSeen == null) continue;
+        for (Map<String, Object> row : rawStatuses) {
+            DeviceStatus status = toDeviceStatus(row);
+            Integer deviceId = status.getDevice_id();
+            LocalDateTime lastSeenAt = status.getLast_seen();
+            if (deviceId == null || lastSeenAt == null) continue;
+            Instant lastSeen = lastSeenAt.toInstant(ZoneOffset.UTC);
 
             long diffMinutes = Duration.between(lastSeen, now).toMinutes();
             boolean offlineByTime = diffMinutes >= thresholdMinutes;
-            boolean offlineByFlag = row.get("is_online") instanceof Boolean && !((Boolean) row.get("is_online"));
+            boolean offlineByFlag = Boolean.FALSE.equals(status.getIs_online());
 
             if (offlineByTime || offlineByFlag) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("device_id", deviceId);
-                item.put("last_seen", row.get("last_seen"));
-                item.put("minutes_since_last_seen", diffMinutes);
+                OfflineDeviceDto item = new OfflineDeviceDto();
+                item.setDevice_id(deviceId);
+                item.setLast_seen(row.get("last_seen") != null ? String.valueOf(row.get("last_seen")) : null);
+                item.setMinutes_since_last_seen(diffMinutes);
                 offline.add(item);
 
                 if (!hasUnreadAlert(deviceId, "OFFLINE")) {
@@ -201,11 +266,11 @@ public class daocuong {
             }
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("threshold_minutes", thresholdMinutes);
-        result.put("offline_devices", offline);
-        result.put("created_alerts", createdAlerts);
-        if (!warnings.isEmpty()) result.put("warnings", new ArrayList<>(warnings));
+        OfflineCheckResultDto result = new OfflineCheckResultDto();
+        result.setThreshold_minutes(thresholdMinutes);
+        result.setOffline_devices(offline);
+        result.setCreated_alerts(createdAlerts);
+        if (!warnings.isEmpty()) result.setWarnings(new ArrayList<>(warnings));
         return result;
     }
 
@@ -215,22 +280,23 @@ public class daocuong {
      * - Với mỗi device => lấy bản ghi sensor_data mới nhất
      * - Nếu power/current vượt ngưỡng => tạo alert (POWER_OVER / CURRENT_OVER)
      */
-    public Map<String, Object> checkThresholdAlerts() {
+    public ThresholdCheckResultDto checkThresholdAlerts() {
         warnings.clear();
-        List<Map<String, Object>> limits = getListWithFallback(
+        List<Map<String, Object>> rawLimits = getListWithFallback(
                 tableDeviceLimit,
                 new String[] { "device_limits" },
                 "?select=device_id,max_power,max_current"
         );
-        List<Map<String, Object>> over = new ArrayList<>();
+        List<OverLimitDeviceDto> over = new ArrayList<>();
         int createdAlerts = 0;
 
-        for (Map<String, Object> lim : limits) {
-            Integer deviceId = lim.get("device_id") instanceof Number ? ((Number) lim.get("device_id")).intValue() : null;
+        for (Map<String, Object> lim : rawLimits) {
+            DeviceLimit limit = toDeviceLimit(lim);
+            Integer deviceId = limit.getDevice_id();
             if (deviceId == null) continue;
 
-            Double maxPower = lim.get("max_power") instanceof Number ? ((Number) lim.get("max_power")).doubleValue() : null;
-            Double maxCurrent = lim.get("max_current") instanceof Number ? ((Number) lim.get("max_current")).doubleValue() : null;
+            Double maxPower = limit.getMax_power() != null ? limit.getMax_power().doubleValue() : null;
+            Double maxCurrent = limit.getMax_current() != null ? limit.getMax_current().doubleValue() : null;
 
             String q = String.format(
                     "/%s?select=device_id,power,current,created_at&device_id=eq.%d&order=created_at.desc&limit=1",
@@ -239,20 +305,20 @@ public class daocuong {
             List<Map<String, Object>> latestList = getList(q);
             if (latestList.isEmpty()) continue;
 
-            Map<String, Object> latest = latestList.get(0);
-            Double power = latest.get("power") instanceof Number ? ((Number) latest.get("power")).doubleValue() : null;
-            Double current = latest.get("current") instanceof Number ? ((Number) latest.get("current")).doubleValue() : null;
+            SensorData latest = toSensorData(latestList.get(0));
+            Double power = latest.getPower() != null ? latest.getPower().doubleValue() : null;
+            Double current = latest.getCurrent() != null ? latest.getCurrent().doubleValue() : null;
 
             boolean powerOver = (maxPower != null && power != null && power > maxPower);
             boolean currentOver = (maxCurrent != null && current != null && current > maxCurrent);
             if (!powerOver && !currentOver) continue;
 
-            Map<String, Object> item = new HashMap<>();
-            item.put("device_id", deviceId);
-            item.put("latest", latest);
-            item.put("limit", lim);
-            item.put("power_over", powerOver);
-            item.put("current_over", currentOver);
+            OverLimitDeviceDto item = new OverLimitDeviceDto();
+            item.setDevice_id(deviceId);
+            item.setLatest(latest);
+            item.setLimit(limit);
+            item.setPower_over(powerOver);
+            item.setCurrent_over(currentOver);
             over.add(item);
 
             if (powerOver && !hasUnreadAlert(deviceId, "POWER_OVER")) {
@@ -267,22 +333,26 @@ public class daocuong {
             }
         }
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("over_limit_devices", over);
-        result.put("created_alerts", createdAlerts);
-        if (!warnings.isEmpty()) result.put("warnings", new ArrayList<>(warnings));
+        ThresholdCheckResultDto result = new ThresholdCheckResultDto();
+        result.setOver_limit_devices(over);
+        result.setCreated_alerts(createdAlerts);
+        if (!warnings.isEmpty()) result.setWarnings(new ArrayList<>(warnings));
         return result;
     }
 
-    public List<Map<String, Object>> getLatestAlerts(int limit) {
+    public List<Alert> getLatestAlerts(int limit) {
         int safeLimit = Math.min(Math.max(limit, 1), 200);
         warnings.clear();
         String q = String.format("?select=id,device_id,type,message,is_read&order=id.desc&limit=%d", safeLimit);
-        List<Map<String, Object>> r = getListWithFallback(
+        List<Map<String, Object>> rows = getListWithFallback(
                 tableAlerts,
                 new String[] { "alert" },
                 q
         );
-        return r;
+        List<Alert> result = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            result.add(toAlert(row));
+        }
+        return result;
     }
 }
