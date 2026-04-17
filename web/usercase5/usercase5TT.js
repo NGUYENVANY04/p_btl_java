@@ -29,7 +29,7 @@ function initChart() {
         data: {
             labels: [],
             datasets: [{
-                label: 'Năng lượng (kWh)',
+                label: 'Năng lượng',
                 data: [],
                 borderColor: '#10b981',
                 borderWidth: 3,
