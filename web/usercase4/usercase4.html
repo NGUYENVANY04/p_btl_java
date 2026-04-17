@@ -7,7 +7,7 @@
         <script
             src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
         <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
         h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; text-transform: uppercase; }
         .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px 20px; background: #e8f0fe; border-radius: 8px; border: 1px solid #c2d7fa; }
@@ -27,10 +27,10 @@
         <div class="container">
             <h2>Dữ Liệu Cảm Biến Real-Time</h2>
             <div class="status-bar">
-                <span>Bảng: <strong>sensor_data</strong></span>
-                <span id="connection-status">
-                    <span class="status-dot"></span> Đang khởi tạo...
-                </span>
+                <span>Bảng: <strong>sensor_data</strong> (Giới hạn 20
+                    dòng)</span>
+                <span id="connection-status"><span class="status-dot"></span>
+                    Đang kết nối...</span>
             </div>
 
             <table>
@@ -56,9 +56,13 @@
     const _supabase = supabase.createClient(SUPABASE_URL, ANON_KEY);
     const tableBody = document.getElementById('data-table');
     const statusDiv = document.getElementById('connection-status');
+    const MAX_ROWS = 20; // Đặt giới hạn tại đây
 
-    // Hàm tạo dòng dữ liệu
     function addRow(log, isNew = false) {
+        // Kiểm tra xem ID đã tồn tại chưa để tránh trùng lặp khi Real-time và Fetch chạy song song
+        const existingIds = Array.from(tableBody.querySelectorAll('td:first-child')).map(td => td.innerText.replace('#', ''));
+        if (existingIds.includes(log.id.toString())) return;
+
         const row = tableBody.insertRow(0); 
         if (isNew) row.classList.add('new-row');
         row.innerHTML = `
@@ -70,60 +74,47 @@
             <td><b>${log.energy?.toFixed(2) || '0.00'}</b> Wh</td>
             <td style="color: #666;">${new Date(log.created_at).toLocaleTimeString('vi-VN')}</td>
         `;
+
+        // KIỂM SOÁT GIỚI HẠN 20 DÒNG
+        if (tableBody.rows.length > MAX_ROWS) {
+            tableBody.deleteRow(tableBody.rows.length - 1); // Xóa dòng cuối cùng (cũ nhất)
+        }
     }
 
-    // Hàm fetch dữ liệu mới nhất (Refresh)
-    async function fetchData() {
+    async function loadInitialData() {
         try {
             const { data, error } = await _supabase
                 .from('sensor_data')
                 .select('*')
                 .order('id', { ascending: false })
-                .limit(10);
+                .limit(MAX_ROWS);
 
             if (error) throw error;
 
-            // Cập nhật giao diện mà không làm mất hiệu ứng dòng mới nếu có
-            const currentIds = Array.from(tableBody.querySelectorAll('td:first-child')).map(td => td.innerText.replace('#', ''));
-            
-            data.reverse().forEach(item => {
-                if (!currentIds.includes(item.id.toString())) {
-                    addRow(item, true);
-                }
-            });
-
-            // Giới hạn số dòng hiển thị cho nhẹ web
-            while (tableBody.rows.length > 15) {
-                tableBody.deleteRow(tableBody.rows.length - 1);
-            }
-
-            statusDiv.innerHTML = '<span class="status-dot"></span> Đang trực tuyến (Sync: 5s)';
+            statusDiv.innerHTML = '<span class="status-dot"></span> Đang trực tuyến (Max 20 dòng)';
+            if (data) data.reverse().forEach(item => addRow(item));
         } catch (err) {
-            statusDiv.innerHTML = '<span class="status-dot" style="background-color: #ea4335;"></span> Lỗi: ' + err.message;
+            statusDiv.innerHTML = '❌ Lỗi: ' + err.message;
         }
     }
 
-    // Lắng nghe dữ liệu đẩy từ Server (Real-time)
-    function enableRealtime() {
+    function listenRealtime() {
         _supabase
-            .channel('db-changes')
+            .channel('sensor-updates')
             .on('postgres_changes', 
                 { event: 'INSERT', schema: 'public', table: 'sensor_data' }, 
                 (payload) => {
-                    console.log("Dữ liệu mới nhận (Real-time):", payload.new);
+                    console.log("Real-time insert:", payload.new);
                     addRow(payload.new, true);
                 }
             )
             .subscribe();
     }
 
-    // Khởi tạo
-    fetchData();
-    enableRealtime();
-
-    // Tự động đồng bộ mỗi 5 giây để phòng trường hợp Real-time bị đứt kết nối
-    setInterval(fetchData, 5000);
-
+    // Chạy hệ thống
+    loadInitialData();
+    listenRealtime();
 </script>
+
     </body>
 </html>
