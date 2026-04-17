@@ -1,14 +1,11 @@
 
 async function renderDeviceManager() {
-    // Hỗ trợ cả trang demo.html và device.html
     const container = document.getElementById("deviceSection") || document.getElementById("deviceCardGrid");
 
     if (!container) {
         console.error("Lỗi: Không tìm thấy vùng hiển thị thiết bị. Vui lòng kiểm tra id 'deviceSection' hoặc 'deviceCardGrid'.");
         return;
     }
-
-    // 1. Hiệu ứng Loading "Scanning"
     container.innerHTML = `
         <div class="loader-container">
             <div class="spinner"></div>
@@ -17,18 +14,11 @@ async function renderDeviceManager() {
             </p>
         </div>
     `;
-
     try {
-        const devices = await getDevices(); // Hàm lấy dữ liệu từ api.js
-
-        // Nếu là deviceCardGrid (device.html), chỉ render các card
-        // Nếu là deviceSection (demo.html), render toàn bộ
+        const devices = await getDevices();
         const isStandalone = document.getElementById("deviceCardGrid");
-
         let htmlTemplate;
-
         if (isStandalone) {
-            // Chỉ render các device card cho device.html
             htmlTemplate = devices.map(device => `
                 <div class="device-card">
                     <div class="card-header">
@@ -45,7 +35,7 @@ async function renderDeviceManager() {
                         <div class="status-item">
                             <span class="status-label">Trạng thái</span>
                             <span class="status-value ${device.status === 'online' ? 'text-active' : 'text-inactive'}">
-                                ${device.status === 'online' ? '● Trực tuyến' : '○ Ngoại tuyến'}
+                                ${device.status === true ? '● Trực tuyến' : '○ Ngoại tuyến'}
                             </span>
                         </div>
                     </div>
@@ -63,7 +53,6 @@ async function renderDeviceManager() {
                 </div>
             `).join('');
         } else {
-            // Demo.html mode - render từng device theo cách cũ
             htmlTemplate = `
                 <div class="device-card-grid">
                     ${devices.map(device => `
@@ -83,7 +72,7 @@ async function renderDeviceManager() {
                                 <div class="info-group">
                                     <span class="info-label">Trạng thái</span>
                                     <span class="info-value ${device.status === 'online' ? 'text-active' : 'text-inactive'}">
-                                        ${device.status === 'online' ? 'Trực tuyến' : 'Ngoại tuyến'}
+                                        ${device.status === true ? 'Trực tuyến' : 'Ngoại tuyến'}
                                     </span>
                                 </div>
                             </div>
@@ -101,9 +90,7 @@ async function renderDeviceManager() {
                 </div>
             `;
         }
-
         container.innerHTML = htmlTemplate;
-
     } catch (error) {
         console.error("Lỗi render thiết bị:", error);
         container.innerHTML = `
@@ -114,10 +101,6 @@ async function renderDeviceManager() {
         `;
     }
 }
-
-/**
- * Xác nhận xóa thiết bị
- */
 async function confirmDelete(id) {
     if (!confirm("Bạn có chắc muốn xóa thiết bị này?")) {
         return;
@@ -125,10 +108,6 @@ async function confirmDelete(id) {
     await deleteDevice(id);
     renderDeviceManager();
 }
-
-/**
- * Xử lý thêm thiết bị mới từ thanh Input
- */
 async function handleAddNewDevice() {
     const name = document.getElementById('newDeviceName').value.trim();
     const location = document.getElementById('newDeviceLocation').value.trim();
@@ -138,15 +117,14 @@ async function handleAddNewDevice() {
         return;
     }
 
-    // Hiệu ứng nút bấm khi đang xử lý
     const btn = document.querySelector('.btn-add-submit');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>...';
 
     try {
-        await createDevice({ name, location }); // Hàm trong api.js
+        await createDevice({ name, location });
         document.getElementById('newDeviceName').value = '';
         document.getElementById('newDeviceLocation').value = '';
-        renderDeviceManager(); // Load lại danh sách
+        renderDeviceManager();
     } catch (err) {
         alert("Lỗi khi đăng ký thiết bị mới!");
         btn.innerHTML = '<i class="fas fa-plus"></i> Thêm';

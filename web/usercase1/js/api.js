@@ -1,25 +1,11 @@
 const API = "http://localhost:8080/api/devices";
-
-// Mock data for demo purposes
-let mockDevices = [
-    { id: 1, name: "Thiết bị 1", location: "Phòng A", status: "online" },
-    { id: 2, name: "Thiết bị 2", location: "Phòng B", status: "online" },
-    { id: 3, name: "Thiết bị 3", location: "Phòng C", status: "offline" }
-];
-
-let mockLimits = [
-    { device_id: 1, max_power: 100, max_current: 10 },
-    { device_id: 2, max_power: 150, max_current: 15 }
-];
-
-//// DEVICE API ////
+const API_Threshold = "http://localhost:8080/api/device_limits";
 
 async function getDevices() {
     const res = await fetch(API);
     if (!res.ok) throw new Error("Failed to fetch devices");
     return await res.json();
 }
-
 async function createDevice(data) {
     const res = await fetch(API, {
         method: "POST",
@@ -38,14 +24,12 @@ async function createDevice(data) {
         throw new Error(errText);
     }
 
-    return await res.json(); // nhận device vừa tạo
+    return await res.json();
 }
-/**
- * Xóa thiết bị
- */
 async function deleteDevice(id) {
     try {
-        const response = await fetch(`${API}/${id}`, { method: "DELETE" });
+        const response = await fetch(`${API}/${id}`,
+            { method: "DELETE" });
         if (!response.ok) throw new Error("Failed to delete");
     } catch (err) {
         console.error("Delete error:", err);
@@ -53,37 +37,61 @@ async function deleteDevice(id) {
 }
 
 async function updateDevice(id, data) {
-    const res = await axios.put(`${API}/devices/${id}`, {
-        name: data.name,
-        location: data.location
+    const res = await fetch(`${API}/${id}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            name: data.name,
+            location: data.location
+        })
     });
-    return res.data;
+
+    if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+    }
+
+    return await res.json();
 }
 
-//// DEVICE LIMIT API ////
-
 async function getLimits() {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return mockLimits;
+    const res = await fetch(API_Threshold);
+    if (!res.ok) throw new Error("Failed to fetch devices");
+    return await res.json();
 }
 
 async function setLimit(data) {
-    const existing = mockLimits.find(l => l.device_id === data.device_id);
-    if (existing) {
-        existing.max_power = data.max_power;
-        existing.max_current = data.max_current;
-    } else {
-        mockLimits.push({
-            device_id: data.device_id,
-            max_power: data.max_power,
-            max_current: data.max_current
+    try {
+        const response = await fetch(`${API_Threshold}/${data.device_id}`, {
+
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                id: data.device_id,
+                device_id: data.device_id,
+                max_power: data.max_power,
+                max_current: data.max_current
+            })
         });
+
+        if (!response.ok) {
+            throw new Error("API error: " + response.status);
+        }
+
+        const result = await response.json();
+        console.log("Saved:", result);
+
+    } catch (error) {
+        console.error("Error saving limit:", error);
     }
-    await new Promise(resolve => setTimeout(resolve, 100));
 }
 
-// Alias for compatibility
 async function saveLimit(deviceId, maxPower, maxCurrent) {
+    console.log("meo chay toi");
     return setLimit({
         device_id: deviceId,
         max_power: maxPower,

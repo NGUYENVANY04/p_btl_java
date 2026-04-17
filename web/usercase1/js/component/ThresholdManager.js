@@ -1,7 +1,7 @@
 
 async function renderThresholdManager() {
     const container = document.getElementById("thresholdSection");
-    
+
     // 1. Trạng thái Loading Cyber (Đồng bộ với DeviceManager)
     container.innerHTML = `
         <div class="loader-container">
@@ -17,10 +17,10 @@ async function renderThresholdManager() {
         const htmlTemplate = `
             <div class="threshold-grid">
                 ${devices.map(device => {
-                    // Tìm giới hạn tương ứng với thiết bị hiện tại
-                    const limit = limits.find(l => l.device_id === device.id) || {};
-                    
-                    return `
+            // Tìm giới hạn tương ứng với thiết bị hiện tại
+            const limit = limits.find(l => l.device_id === device.id) || {};
+
+            return `
                         <div class="device-card">
                             <div class="card-header">
                                 <div class="card-title-group">
@@ -66,7 +66,7 @@ async function renderThresholdManager() {
                             </div>
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `;
 
@@ -86,7 +86,7 @@ async function uiSaveThreshold(deviceId, btn) {
     btn.classList.add('is-loading');
     btn.disabled = true;
     const originalContent = btn.innerHTML;
-    
+
     // Đổi icon sang spinner quay tròn khi đang xử lý
     btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> <span>Đang ghi...</span>`;
 
@@ -100,7 +100,7 @@ async function uiSaveThreshold(deviceId, btn) {
         }
 
         // 2. Gọi API thực tế
-        await saveLimit(deviceId, powerValue, currentValue); 
+        await saveLimit(deviceId, powerValue, currentValue);
 
         // 3. Hiệu ứng thành công (Màu xanh Teal phát sáng)
         btn.innerHTML = `<i class="fas fa-check-circle"></i> <span>Thành công</span>`;
@@ -114,7 +114,7 @@ async function uiSaveThreshold(deviceId, btn) {
             btn.innerHTML = originalContent;
             btn.classList.remove('is-loading');
             btn.disabled = false;
-            btn.style = ""; 
+            btn.style = "";
         }, 2000);
 
     } catch (err) {
@@ -124,7 +124,7 @@ async function uiSaveThreshold(deviceId, btn) {
         btn.style.borderColor = "var(--accent-red)";
         btn.style.color = "var(--accent-red)";
         btn.style.boxShadow = "0 0 15px rgba(239, 68, 68, 0.4)";
-        
+
         console.error("Save Threshold Error:", err);
 
         setTimeout(() => {

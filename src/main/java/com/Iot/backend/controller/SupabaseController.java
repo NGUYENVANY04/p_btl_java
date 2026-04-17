@@ -61,6 +61,18 @@ public class SupabaseController {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
+    @GetMapping("/device_limits")
+    public ResponseEntity<?> getAllLimitDevices() {
+        return ResponseEntity.ok(deviceService.getAllLimitDevices());
+    }
+
+    @PutMapping("/device_limits/{id}")
+    public ResponseEntity<?> createLimitDevice(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> device) {
+        return ResponseEntity.ok(deviceService.createLimitDevice(id, device));
+    }
+
     // UPDATE
     @PutMapping("/devices/{id}")
     public ResponseEntity<?> updateDevice(@PathVariable Long id,
