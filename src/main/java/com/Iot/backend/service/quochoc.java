@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class quochoc {
@@ -15,293 +16,167 @@ public class quochoc {
     private final String API_KEY = "sb_secret_NXFJy_AuCYhqJmmJadDKNA_I7N91qFu";
 
     // =============================
-    // FETCH ALL DATA (AUTO PAGINATION)
+    // LẤY TOÀN BỘ DATA TỪ VIEW VÀ PHÂN TRANG (Vượt giới hạn 1000 dòng của Supabase)
     // =============================
-    private List<Map<String, Object>> fetchAllSensorData(boolean full) {
-
+    private List<Map<String, Object>> fetchAllFromView() {
         List<Map<String, Object>> allData = new ArrayList<>();
-
         int limit = 1000;
         int offset = 0;
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("apikey", API_KEY);
+        headers.setBearerAuth(API_KEY);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("apikey", API_KEY);
-            headers.set("Authorization", "Bearer " + API_KEY);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
             while (true) {
-
-                String select = full ? "*" : "created_at,energy";
-
-                String url = URL + "/sensor_data?select=" + select +
-                        "&limit=" + limit +
-                        "&offset=" + offset;
+                // Chỉ lấy created_at và delta_energy từ View để tối ưu tốc độ
+                String endpoint = URL + "/sensor_data_processed?select=created_at,delta_energy&limit=" + limit
+                        + "&offset=" + offset;
 
                 ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                        url,
-                        HttpMethod.GET,
-                        entity,
+                        endpoint, HttpMethod.GET, new HttpEntity<>(headers),
                         new ParameterizedTypeReference<List<Map<String, Object>>>() {
                         });
 
                 List<Map<String, Object>> batch = response.getBody();
-
                 if (batch == null || batch.isEmpty())
                     break;
 
                 allData.addAll(batch);
-
                 offset += limit;
             }
-
         } catch (Exception e) {
-            System.out.println("FETCH ERROR: " + e.getMessage());
+            System.err.println("Lỗi API Supabase View: " + e.getMessage());
         }
-
         return allData;
     }
 
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
+    }
+
     // =============================
-    // YEAR → GROUP BY MONTH
+    // 1. TỔNG QUAN CÁC NĂM
+    // =============================
+    public List<Map<String, Object>> getEnergyOverview() {
+        List<Map<String, Object>> rawData = fetchAllFromView();
+
+        Map<Integer, Double> map = rawData.stream()
+                .filter(r -> r.get("created_at") != null)
+                .collect(Collectors.groupingBy(
+                        r -> Integer.parseInt(((String) r.get("created_at")).substring(0, 4)),
+                        Collectors.summingDouble(r -> ((Number) r.getOrDefault("delta_energy", 0.0)).doubleValue())));
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        map.forEach((year, energy) -> result.add(Map.of("nam", year, "tong_nang_luong", round(energy))));
+        result.sort((a, b) -> ((Integer) b.get("nam")).compareTo((Integer) a.get("nam"))); // Sắp xếp mới nhất lên đầu
+        return result;
+    }
+
+    // =============================
+    // 2. NĂM TRẢ VỀ THÁNG
     // =============================
     public List<Map<String, Object>> getYearlyEnergy(Integer yearFilter) {
+        String filter = yearFilter != null ? String.valueOf(yearFilter) : null;
+        List<Map<String, Object>> rawData = fetchAllFromView();
 
-        List<Map<String, Object>> data = fetchAllSensorData(false);
-        Map<String, Double> map = new HashMap<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                String created = (String) row.get("created_at");
-                if (created == null || created.length() < 7)
-                    continue;
-
-                int year = Integer.parseInt(created.substring(0, 4));
-
-                if (yearFilter == null || year == yearFilter) {
-
-                    String month = created.substring(0, 7);
-
-                    Double energy = row.get("energy") != null
-                            ? ((Number) row.get("energy")).doubleValue()
-                            : 0.0;
-
-                    map.put(month, map.getOrDefault(month, 0.0) + energy);
-                }
-
-            } catch (Exception e) {
-                System.out.println("YEAR ERROR: " + e.getMessage());
-            }
-        }
+        Map<String, Double> map = rawData.stream()
+                .filter(r -> r.get("created_at") != null
+                        && (filter == null || ((String) r.get("created_at")).startsWith(filter)))
+                .collect(Collectors.groupingBy(
+                        r -> ((String) r.get("created_at")).substring(0, 7), // Lấy chuỗi "YYYY-MM"
+                        Collectors.summingDouble(r -> ((Number) r.getOrDefault("delta_energy", 0.0)).doubleValue())));
 
         List<Map<String, Object>> result = new ArrayList<>();
-
-        map.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByKey().reversed())
-                .forEach(e -> result.add(Map.of(
-                        "thang", e.getKey(),
-                        "tong_nang_luong", e.getValue())));
-
+        map.forEach((month, energy) -> result.add(Map.of("thang", month, "tong_nang_luong", round(energy))));
+        result.sort((a, b) -> ((String) b.get("thang")).compareTo((String) a.get("thang")));
         return result;
     }
 
     // =============================
-    // MONTH → GROUP BY DAY
+    // 3. THÁNG TRẢ VỀ NGÀY
     // =============================
     public List<Map<String, Object>> getMonthlyEnergy(String monthFilter) {
+        List<Map<String, Object>> rawData = fetchAllFromView();
 
-        List<Map<String, Object>> data = fetchAllSensorData(false);
-        Map<String, Double> map = new HashMap<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                String created = (String) row.get("created_at");
-                if (created == null || created.length() < 10)
-                    continue;
-
-                String month = created.substring(0, 7);
-
-                if (monthFilter == null || month.equals(monthFilter)) {
-
-                    String day = created.substring(0, 10);
-
-                    Double energy = row.get("energy") != null
-                            ? ((Number) row.get("energy")).doubleValue()
-                            : 0.0;
-
-                    map.put(day, map.getOrDefault(day, 0.0) + energy);
-                }
-
-            } catch (Exception e) {
-                System.out.println("MONTH ERROR: " + e.getMessage());
-            }
-        }
+        Map<String, Double> map = rawData.stream()
+                .filter(r -> r.get("created_at") != null
+                        && (monthFilter == null || ((String) r.get("created_at")).startsWith(monthFilter)))
+                .collect(Collectors.groupingBy(
+                        r -> ((String) r.get("created_at")).substring(0, 10), // Lấy chuỗi "YYYY-MM-DD"
+                        Collectors.summingDouble(r -> ((Number) r.getOrDefault("delta_energy", 0.0)).doubleValue())));
 
         List<Map<String, Object>> result = new ArrayList<>();
-
-        map.entrySet().stream()
-                .sorted(Map.Entry.<String, Double>comparingByKey().reversed())
-                .forEach(e -> result.add(Map.of(
-                        "ngay", e.getKey(),
-                        "tong_nang_luong", e.getValue())));
-
+        map.forEach((day, energy) -> result.add(Map.of("ngay", day, "tong_nang_luong", round(energy))));
+        result.sort((a, b) -> ((String) b.get("ngay")).compareTo((String) a.get("ngay")));
         return result;
     }
 
     // =============================
-    // DAY → RAW DATA (THEO GIỜ)
+    // 4. NGÀY TRẢ VỀ GIỜ
     // =============================
     public List<Map<String, Object>> getDataByDay(String dayFilter) {
+        List<Map<String, Object>> rawData = fetchAllFromView();
 
-        List<Map<String, Object>> data = fetchAllSensorData(true);
+        Map<String, Double> map = rawData.stream()
+                .filter(r -> r.get("created_at") != null
+                        && (dayFilter == null || ((String) r.get("created_at")).startsWith(dayFilter)))
+                .collect(Collectors.groupingBy(
+                        r -> {
+                            String time = (String) r.get("created_at");
+                            return time.length() >= 13 ? time.substring(11, 13) + ":00" : "00:00";
+                        },
+                        Collectors.summingDouble(r -> ((Number) r.getOrDefault("delta_energy", 0.0)).doubleValue())));
+
         List<Map<String, Object>> result = new ArrayList<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                String created = (String) row.get("created_at");
-                if (created == null || created.length() < 19)
-                    continue;
-
-                String day = created.substring(0, 10);
-
-                if (dayFilter == null || day.equals(dayFilter)) {
-
-                    String time = created.substring(11, 19);
-
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("time", time);
-                    map.put("voltage", row.get("voltage"));
-                    map.put("current", row.get("current"));
-                    map.put("power", row.get("power"));
-                    map.put("energy", row.get("energy"));
-
-                    result.add(map);
-                }
-
-            } catch (Exception e) {
-                System.out.println("DAY ERROR: " + e.getMessage());
-            }
-        }
-
-        // sort theo giờ
-        result.sort((a, b) -> ((String) a.get("time"))
-                .compareTo((String) b.get("time")));
-
+        map.forEach((hour, energy) -> result.add(Map.of("time", hour, "tong_nang_luong", round(energy))));
+        result.sort((a, b) -> ((String) a.get("time")).compareTo((String) b.get("time"))); // Xếp từ 00:00 -> 23:00
         return result;
     }
 
+    // =============================
+    // QUẢN LÝ ALERTS
+    // =============================
     private List<Map<String, Object>> fetchAlerts() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("apikey", API_KEY);
+        headers.setBearerAuth(API_KEY);
+        headers.setContentType(MediaType.APPLICATION_JSON);
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("apikey", API_KEY);
-            headers.set("Authorization", "Bearer " + API_KEY);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            // ⚠️ đổi alert -> alerts
-            String url = URL + "/alerts?select=*";
-
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    entity,
+                    URL + "/alerts?select=*", HttpMethod.GET, new HttpEntity<>(headers),
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {
                     });
-
             return response.getBody() != null ? response.getBody() : new ArrayList<>();
-
         } catch (Exception e) {
-            System.out.println("Fetch ALERT error: " + e.getMessage());
             return new ArrayList<>();
         }
     }
 
-    // =============================
-    // GET ALL ALERTS
-    // =============================
     public List<Map<String, Object>> getAllAlerts() {
         return fetchAlerts();
     }
 
-    // =============================
-    // GET ALERT BY DEVICE
-    // =============================
     public List<Map<String, Object>> getAlertsByDevice(Integer deviceId) {
-
-        List<Map<String, Object>> data = fetchAlerts();
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                Integer dId = row.get("device_id") != null
-                        ? ((Number) row.get("device_id")).intValue()
-                        : null;
-
-                if (deviceId == null || (dId != null && dId.equals(deviceId))) {
-                    result.add(row);
-                }
-
-            } catch (Exception e) {
-                System.out.println("FILTER ALERT error: " + e.getMessage());
-            }
-        }
-
-        return result;
+        return fetchAlerts().stream()
+                .filter(r -> deviceId == null || Objects.equals(r.get("device_id"), deviceId))
+                .collect(Collectors.toList());
     }
 
-    // =============================
-    // GET UNREAD ALERT
-    // =============================
     public List<Map<String, Object>> getUnreadAlerts() {
-
-        List<Map<String, Object>> data = fetchAlerts();
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                Boolean isRead = (Boolean) row.get("is_read");
-
-                if (isRead != null && !isRead) {
-                    result.add(row);
-                }
-
-            } catch (Exception e) {
-                System.out.println("UNREAD ALERT error: " + e.getMessage());
-            }
-        }
-
-        return result;
+        return fetchAlerts().stream()
+                .filter(r -> Boolean.FALSE.equals(r.get("is_read")))
+                .collect(Collectors.toList());
     }
 
-    // =============================
-    // GET ALERT THEO NGÀY
-    // =============================
     public List<Map<String, Object>> getAlertsByDay(String dayFilter) {
-
-        List<Map<String, Object>> data = fetchAlerts();
-        List<Map<String, Object>> result = new ArrayList<>();
-
-        for (Map<String, Object> row : data) {
-            try {
-                String created = (String) row.get("created_at");
-
-                if (created == null || created.length() < 10)
-                    continue;
-
-                String day = created.substring(0, 10);
-
-                if (dayFilter == null || day.equals(dayFilter)) {
-                    result.add(row);
-                }
-
-            } catch (Exception e) {
-                System.out.println("DAY ALERT error: " + e.getMessage());
-            }
-        }
-
-        return result;
+        return fetchAlerts().stream()
+                .filter(r -> {
+                    String time = (String) r.get("created_at");
+                    return time != null && time.length() >= 10
+                            && (dayFilter == null || time.substring(0, 10).equals(dayFilter));
+                })
+                .collect(Collectors.toList());
     }
 }

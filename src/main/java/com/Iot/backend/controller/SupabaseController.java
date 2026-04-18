@@ -6,81 +6,59 @@ import org.springframework.web.bind.annotation.*;
 
 import com.Iot.backend.service.quochoc;
 
-// import java.util.List;
-// import java.util.Map;
-
-/**
- * SupabaseController
- * ------------------
- * Controller chính dùng 5 service:
- * - vany
- * - quochoc
- * - ducthinh
- * - xuandat
- * - daocuong
- *
- * Mỗi service có thể triển khai GET/POST/PUT/DELETE riêng.
- */
-
+@CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
 @RestController
 @RequestMapping("/api")
 public class SupabaseController {
 
-    // -----------------------
-    // Inject các service
-    // -----------------------
-    // @Autowired
-    // private vany vanyService;
-
     @Autowired
     private quochoc quochocService;
 
-    // @Autowired
-    // private ducthinh ducThinhService;
+    // Lấy dữ liệu tổng quan theo năm
+    @GetMapping("/quochoc/energy/overview")
+    public ResponseEntity<?> getEnergyOverview() {
+        return ResponseEntity.ok(quochocService.getEnergyOverview());
+    }
 
-    // @Autowired
-    // private xuandat xuanDatService;
-
-    // @Autowired
-    // private daocuong daoCuongService;
+    // Lấy dữ liệu năm -> trả về các tháng
     @GetMapping("/quochoc/energy/yearly")
     public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
     }
 
-    // MONTH → ngày
+    // Lấy dữ liệu tháng -> trả về các ngày
     @GetMapping("/quochoc/energy/monthly")
     public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
         return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
     }
 
-    // DAY → raw theo giờ
+    // Lấy dữ liệu ngày -> trả về các giờ
     @GetMapping("/quochoc/data/day")
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));
     }
 
+    // Lấy tất cả cảnh báo
     @GetMapping("/quochoc/alerts")
     public ResponseEntity<?> getAllAlert() {
         return ResponseEntity.ok(quochocService.getAllAlerts());
     }
 
-    // ✅ Theo device
+    // Lấy cảnh báo theo thiết bị
     @GetMapping("/quochoc/alerts/device")
     public ResponseEntity<?> getAlertByDevice(@RequestParam(required = false) Integer deviceId) {
         return ResponseEntity.ok(quochocService.getAlertsByDevice(deviceId));
     }
 
-    // ✅ Chưa đọc
+    // Lấy các cảnh báo chưa đọc
     @GetMapping("/quochoc/alerts/unread")
     public ResponseEntity<?> getUnreadAlert() {
         return ResponseEntity.ok(quochocService.getUnreadAlerts());
     }
 
-    // ✅ Theo ngày
+    // Lấy cảnh báo theo ngày
     @GetMapping("/quochoc/alerts/day")
     public ResponseEntity<?> getAlertByDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getAlertsByDay(day));
     }
-
 }
