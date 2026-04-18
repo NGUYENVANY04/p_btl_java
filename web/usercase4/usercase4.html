@@ -1,120 +1,336 @@
 <!DOCTYPE html>
 <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Hệ Thống Giám Sát Năng Lượng - Usercase 4</title>
-        <script
-            src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-        <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; text-transform: uppercase; }
-        .status-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 12px 20px; background: #e8f0fe; border-radius: 8px; border: 1px solid #c2d7fa; }
-        .status-dot { height: 10px; width: 10px; background-color: #34a853; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        #connection-status { font-weight: 500; color: #1967d2; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        th, td { padding: 15px; text-align: center; border-bottom: 1px solid #eee; }
-        th { background-color: #1a73e8; color: white; font-weight: 600; font-size: 13px; }
-        tr:hover { background-color: #f8f9fa; transition: 0.3s; }
-        .new-row { animation: highlight-fade 3s ease-out; }
-        @keyframes highlight-fade { 0% { background-color: #d4edda; } 100% { background-color: transparent; } }
-        .badge { padding: 5px 12px; border-radius: 20px; background: #34a853; color: white; font-size: 11px; font-weight: bold; }
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giám sát năng lượng</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* ===== RESET (FIX KHOẢNG TRẮNG) ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* ===== GLOBAL ===== */
+        html,
+        body {
+            font-family: 'Segoe UI';
+            background: #0b1c2c;
+            color: #e6f1ff;
+        }
+
+        /* ===== LAYOUT ===== */
+        .wrapper {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* ===== CARD ===== */
+        .card {
+            background: #0f2235;
+            border-radius: 12px;
+            padding: 15px 20px;
+            /* giảm padding top để không bị hở */
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.05);
+        }
+
+        .title {
+            font-size: 20px;
+            margin-bottom: 10px;
+            color: #00e5ff;
+        }
+
+        /* ===== INPUT ===== */
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            border: none;
+            background: #08131f;
+            color: white;
+        }
+
+        small {
+            display: block;
+            margin-bottom: 12px;
+            color: #9bb3c9;
+        }
+
+        /* ===== BUTTON ===== */
+        button {
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn-primary {
+            background: #00e5ff;
+            color: black;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #00e5ff;
+            color: #00e5ff;
+            margin-left: 10px;
+        }
+
+        /* ===== STATUS ===== */
+        .status {
+            margin-top: 15px;
+        }
+
+        /* ===== TABLE WRAPPER ===== */
+        .table-wrapper {
+            max-height: 420px;
+            overflow-y: auto;
+            border-radius: 10px;
+            background: #0f2235;
+            padding-top: 0;
+            /* FIX khoảng trắng */
+        }
+
+        /* ===== TABLE ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        /* ===== STICKY HEADER (FIX HỞ) ===== */
+        thead {
+            position: sticky;
+            top: 0;
+            background: #0f2235;
+            z-index: 10;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            color: #00e5ff;
+            border-bottom: 1px solid #00e5ff;
+        }
+
+        /* ===== ROW EFFECT ===== */
+        tr:hover {
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .new-row {
+            background: rgba(0, 255, 100, 0.15);
+        }
+
+        /* ===== BADGE ===== */
+        .badge {
+            background: #00e5ff;
+            color: black;
+            padding: 4px 8px;
+            border-radius: 12px;
+        }
+
+        /* ===== SCROLLBAR ===== */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f2235;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00e5ff;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00bcd4;
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #00e5ff #0f2235;
+        }
     </style>
-    </head>
-    <body>
+</head>
 
-        <div class="container">
-            <h2>Dữ Liệu Cảm Biến Real-Time</h2>
-            <div class="status-bar">
-                <span>Bảng: <strong>sensor_data</strong> (Giới hạn 20
-                    dòng)</span>
-                <span id="connection-status"><span class="status-dot"></span>
-                    Đang kết nối...</span>
-            </div>
+<body>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Thiết Bị</th>
-                        <th>Điện Áp (V)</th>
-                        <th>Dòng Điện (A)</th>
-                        <th>Công Suất (W)</th>
-                        <th>Năng Lượng (Wh)</th>
-                        <th>Thời Gian</th>
-                    </tr>
-                </thead>
-                <tbody id="data-table"></tbody>
-            </table>
+    <div class="wrapper">
+
+        <!-- CONFIG -->
+        <div class="card">
+            <div class="title">⚙️ Cấu hình hệ thống</div>
+
+            <label>🔗 Địa chỉ API</label>
+            <input id="api" value="http://localhost:8080">
+            <small>Kết nối backend</small>
+
+            <label>📡 Thời gian mất kết nối (phút)</label>
+            <input id="threshold" value="5" type="number" min="1">
+            <small>Không có dữ liệu → OFFLINE</small>
+
+            <label>🚨 Số dòng hiển thị</label>
+            <input id="limit" value="50" type="number" min="1">
+            <small>Giới hạn để tránh lag</small>
+
+            <label>🔄 Tự động refresh (giây)</label>
+            <input id="refresh" value="10" type="number" min="1">
+            <small>Chu kỳ cập nhật</small>
+
+            <button class="btn-primary" onclick="manualCheck()">⚡ Kiểm tra</button>
+            <button class="btn-secondary">📥 Alerts</button>
+
+            <div class="status" id="status">🔄 Đang kết nối...</div>
         </div>
 
-        <script>
-    const SUPABASE_URL = 'https://znfxhbrkabxenuzrcogd.supabase.co';
-    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NDI5ODUsImV4cCI6MjA5MTAxODk4NX0.oi6EOu7_IhJeC0jo9ACUIZaQKfsC3tupUVpF9w0DQiQ';
+        <!-- TABLE -->
+        <div class="card">
+            <div class="title">📊 Dữ liệu cảm biến</div>
 
-    const _supabase = supabase.createClient(SUPABASE_URL, ANON_KEY);
-    const tableBody = document.getElementById('data-table');
-    const statusDiv = document.getElementById('connection-status');
-    const MAX_ROWS = 20; // Đặt giới hạn tại đây
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Device</th>
+                            <th>Voltage</th>
+                            <th>Current</th>
+                            <th>Power</th>
+                            <th>Energy</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="data-table"></tbody>
+                </table>
+            </div>
+        </div>
 
-    function addRow(log, isNew = false) {
-        // Kiểm tra xem ID đã tồn tại chưa để tránh trùng lặp khi Real-time và Fetch chạy song song
-        const existingIds = Array.from(tableBody.querySelectorAll('td:first-child')).map(td => td.innerText.replace('#', ''));
-        if (existingIds.includes(log.id.toString())) return;
+    </div>
 
-        const row = tableBody.insertRow(0); 
-        if (isNew) row.classList.add('new-row');
-        row.innerHTML = `
-            <td>#${log.id}</td>
-            <td><span class="badge">DEVICE ${log.device_id}</span></td>
-            <td><b>${log.voltage?.toFixed(1) || '0.0'}</b> V</td>
-            <td><b>${log.current?.toFixed(2) || '0.00'}</b> A</td>
-            <td><b>${log.power?.toFixed(1) || '0.0'}</b> W</td>
-            <td><b>${log.energy?.toFixed(2) || '0.00'}</b> Wh</td>
-            <td style="color: #666;">${new Date(log.created_at).toLocaleTimeString('vi-VN')}</td>
-        `;
+    <script>
+        const SUPABASE_URL = 'https://znfxhbrkabxenuzrcogd.supabase.co';
+        const ANON_KEY = 'YOUR_KEY';
 
-        // KIỂM SOÁT GIỚI HẠN 20 DÒNG
-        if (tableBody.rows.length > MAX_ROWS) {
-            tableBody.deleteRow(tableBody.rows.length - 1); // Xóa dòng cuối cùng (cũ nhất)
+        const supa = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+        const tableBody = document.getElementById("data-table");
+        const statusDiv = document.getElementById("status");
+
+        let pollingInterval = null;
+        let isRealtimeActive = false;
+
+        /* CONFIG */
+        function getConfig() {
+            return {
+                limit: parseInt(document.getElementById("limit").value) || 20,
+                refresh: parseInt(document.getElementById("refresh").value) * 1000 || 5000
+            };
         }
-    }
 
-    async function loadInitialData() {
-        try {
-            const { data, error } = await _supabase
+        /* ADD ROW */
+        function addRow(log, isNew = false) {
+            const config = getConfig();
+
+            const row = tableBody.insertRow(0);
+            if (isNew) row.classList.add("new-row");
+
+            row.innerHTML = `
+        <td>#${log.id}</td>
+        <td><span class="badge">DEV ${log.device_id}</span></td>
+        <td>${log.voltage?.toFixed(1) || 0}</td>
+        <td>${log.current?.toFixed(2) || 0}</td>
+        <td>${log.power?.toFixed(1) || 0}</td>
+        <td>${log.energy?.toFixed(2) || 0}</td>
+        <td>${new Date(log.created_at).toLocaleTimeString()}</td>
+    `;
+
+            if (tableBody.rows.length > config.limit) {
+                tableBody.deleteRow(tableBody.rows.length - 1);
+            }
+        }
+
+        /* LOAD DATA */
+        async function loadInitialData() {
+            const config = getConfig();
+
+            const { data } = await supa
                 .from('sensor_data')
                 .select('*')
                 .order('id', { ascending: false })
-                .limit(MAX_ROWS);
+                .limit(config.limit);
 
-            if (error) throw error;
-
-            statusDiv.innerHTML = '<span class="status-dot"></span> Đang trực tuyến (Max 20 dòng)';
-            if (data) data.reverse().forEach(item => addRow(item));
-        } catch (err) {
-            statusDiv.innerHTML = '❌ Lỗi: ' + err.message;
+            tableBody.innerHTML = "";
+            data.reverse().forEach(addRow);
         }
-    }
 
-    function listenRealtime() {
-        _supabase
-            .channel('sensor-updates')
-            .on('postgres_changes', 
-                { event: 'INSERT', schema: 'public', table: 'sensor_data' }, 
-                (payload) => {
-                    console.log("Real-time insert:", payload.new);
-                    addRow(payload.new, true);
+        /* REALTIME */
+        function startRealtime() {
+            const channel = supa.channel('realtime');
+
+            channel.on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'sensor_data'
+            }, (payload) => {
+                addRow(payload.new, true);
+            }).subscribe((status) => {
+
+                if (status === "SUBSCRIBED") {
+                    isRealtimeActive = true;
+                    statusDiv.innerHTML = "🟢 Realtime OK";
                 }
-            )
-            .subscribe();
-    }
 
-    // Chạy hệ thống
-    loadInitialData();
-    listenRealtime();
-</script>
+                if (status === "CHANNEL_ERROR") {
+                    statusDiv.innerHTML = "⚠️ Realtime lỗi → polling";
+                    startPolling();
+                }
+            });
+        }
 
-    </body>
+        /* POLLING */
+        function startPolling() {
+            const config = getConfig();
+
+            if (pollingInterval) clearInterval(pollingInterval);
+
+            pollingInterval = setInterval(loadInitialData, config.refresh);
+        }
+
+        /* BUTTON */
+        function manualCheck() {
+            loadInitialData();
+        }
+
+        /* INIT */
+        async function init() {
+            await loadInitialData();
+            startRealtime();
+
+            setTimeout(() => {
+                if (!isRealtimeActive) {
+                    statusDiv.innerHTML = "⚠️ Không có realtime → polling";
+                    startPolling();
+                }
+            }, 5000);
+        }
+
+        init();
+    </script>
+
+</body>
+
 </html>
