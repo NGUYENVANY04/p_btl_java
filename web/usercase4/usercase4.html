@@ -4,22 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Giám sát năng lượng</title>
+    <title>Hệ thống Giám sát & Điều khiển Năng lượng</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-        /* ===== RESET (FIX KHOẢNG TRẮNG) ===== */
+        /* ===== RESET & GLOBAL ===== */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        /* ===== GLOBAL ===== */
-        html,
         body {
-            font-family: 'Segoe UI';
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: #0b1c2c;
             color: #e6f1ff;
         }
@@ -32,137 +30,147 @@
             padding: 20px;
         }
 
-        /* ===== CARD ===== */
+        /* ===== CARD STYLE ===== */
         .card {
             background: #0f2235;
             border-radius: 12px;
-            padding: 15px 20px;
-            /* giảm padding top để không bị hở */
+            padding: 20px;
             box-shadow: 0 0 20px rgba(0, 255, 255, 0.05);
+            margin-bottom: 20px;
         }
 
         .title {
-            font-size: 20px;
-            margin-bottom: 10px;
+            font-size: 18px;
+            margin-bottom: 15px;
             color: #00e5ff;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+            padding-bottom: 10px;
         }
 
-        /* ===== INPUT ===== */
+        /* ===== FORM ELEMENTS ===== */
+        label {
+            display: block;
+            margin-top: 10px;
+            font-size: 13px;
+            color: #9bb3c9;
+        }
+
         input {
             width: 100%;
             padding: 10px;
-            margin-bottom: 5px;
+            margin-top: 5px;
             border-radius: 6px;
             border: none;
             background: #08131f;
             color: white;
+            font-size: 14px;
         }
 
-        small {
-            display: block;
-            margin-bottom: 12px;
-            color: #9bb3c9;
+        /* ===== BUTTONS ===== */
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
 
-        /* ===== BUTTON ===== */
         button {
+            flex: 1;
             padding: 10px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
-            margin-top: 10px;
+            font-weight: bold;
+            transition: 0.2s;
         }
 
         .btn-primary {
             background: #00e5ff;
-            color: black;
+            color: #000;
         }
 
-        .btn-secondary {
-            background: transparent;
-            border: 1px solid #00e5ff;
-            color: #00e5ff;
-            margin-left: 10px;
+        .btn-on {
+            background: #2ecc71;
+            color: #fff;
         }
 
-        /* ===== STATUS ===== */
-        .status {
+        .btn-off {
+            background: #e74c3c;
+            color: #fff;
+        }
+
+        button:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* ===== STATUS DISPLAYS ===== */
+        .status-box {
             margin-top: 15px;
-        }
-
-        /* ===== TABLE WRAPPER ===== */
-        .table-wrapper {
-            max-height: 420px;
-            overflow-y: auto;
-            border-radius: 10px;
-            background: #0f2235;
-            padding-top: 0;
-            /* FIX khoảng trắng */
+            padding: 10px;
+            border-radius: 6px;
+            background: #08131f;
+            text-align: center;
+            font-size: 13px;
         }
 
         /* ===== TABLE ===== */
+        .table-wrapper {
+            max-height: 600px;
+            overflow-y: auto;
+            border-radius: 10px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        /* ===== STICKY HEADER (FIX HỞ) ===== */
         thead {
             position: sticky;
             top: 0;
-            background: #0f2235;
+            background: #162d42;
             z-index: 10;
         }
 
         th,
         td {
-            padding: 10px;
+            padding: 12px;
             text-align: center;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.05);
         }
 
         th {
             color: #00e5ff;
-            border-bottom: 1px solid #00e5ff;
+            font-size: 12px;
         }
 
-        /* ===== ROW EFFECT ===== */
-        tr:hover {
-            background: rgba(0, 255, 255, 0.1);
-        }
-
-        .new-row {
-            background: rgba(0, 255, 100, 0.15);
-        }
-
-        /* ===== BADGE ===== */
         .badge {
             background: #00e5ff;
             color: black;
-            padding: 4px 8px;
-            border-radius: 12px;
-        }
-
-        /* ===== SCROLLBAR ===== */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #0f2235;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #00e5ff;
+            padding: 3px 8px;
             border-radius: 10px;
+            font-size: 10px;
+            font-weight: bold;
         }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #00bcd4;
+        /* Realtime Highlight Animation */
+        .new-row {
+            animation: flash 2s ease-out;
         }
 
-        * {
-            scrollbar-width: thin;
-            scrollbar-color: #00e5ff #0f2235;
+        @keyframes flash {
+            0% {
+                background: rgba(0, 255, 255, 0.2);
+            }
+
+            100% {
+                background: transparent;
+            }
         }
     </style>
 </head>
@@ -170,167 +178,153 @@
 <body>
 
     <div class="wrapper">
+        <div class="sidebar">
+            <div class="card">
+                <div class="title">⚙️ Cấu hình hệ thống</div>
+                <label>Địa chỉ API Backend</label>
+                <input id="api" value="http://localhost:8080">
 
-        <!-- CONFIG -->
-        <div class="card">
-            <div class="title">⚙️ Cấu hình hệ thống</div>
+                <label>Số dòng hiển thị</label>
+                <input id="limit" value="50" type="number">
 
-            <label> Địa chỉ API</label>
-            <input id="api" value="http://localhost:8080">
-            <small>Kết nối backend</small>
+                <button class="btn-primary" style="width: 100%; margin-top: 15px;" onclick="manualCheck()">⚡ Kiểm tra
+                    kết nối</button>
+                <div class="status-box" id="status">🔄 Đang khởi tạo...</div>
+            </div>
 
-            <label> Thời gian mất kết nối (phút)</label>
-            <input id="threshold" value="5" type="number" min="1">
-            <small>Không có dữ liệu → OFFLINE</small>
-
-            <label> Số dòng hiển thị</label>
-            <input id="limit" value="50" type="number" min="1">
-            <small>Giới hạn để tránh lag</small>
-
-            <label> Tự động làm mới (giây)</label>
-            <input id="refresh" value="10" type="number" min="1">
-            <small>Chu kỳ cập nhật</small>
-
-            <button class="btn-primary" onclick="manualCheck()">⚡ Kiểm tra</button>
-            <button class="btn-secondary">📥 Alerts</button>
-
-            <div class="status" id="status">🔄 Đang kết nối...</div>
+            <div class="card">
+                <div class="title">🔌 Điều khiển thiết bị</div>
+                <div style="margin-bottom: 10px; font-size: 14px;">Trạng thái thiết bị 1:</div>
+                <div class="btn-group">
+                    <button class="btn-on" onclick="controlDevice(1, 'ON')">BẬT</button>
+                    <button class="btn-off" onclick="controlDevice(1, 'OFF')">TẮT</button>
+                </div>
+                <div class="status-box" id="control-status" style="color: #9bb3c9;">Sẵn sàng</div>
+            </div>
         </div>
 
-        <!-- TABLE -->
         <div class="card">
-            <div class="title"> Dữ liệu cảm biến</div>
-
+            <div class="title">📊 Dữ liệu cảm biến thời gian thực</div>
             <div class="table-wrapper">
                 <table>
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Device</th>
-                            <th>Voltage</th>
-                            <th>Current</th>
-                            <th>Power</th>
-                            <th>Energy</th>
-                            <th>Time</th>
+                            <th>Thiết bị</th>
+                            <th>Điện áp (V)</th>
+                            <th>Dòng điện (A)</th>
+                            <th>Công suất (W)</th>
+                            <th>Năng lượng (kWh)</th>
+                            <th>Thời gian</th>
                         </tr>
                     </thead>
-                    <tbody id="data-table"></tbody>
+                    <tbody id="data-table">
+                    </tbody>
                 </table>
             </div>
         </div>
-
     </div>
 
     <script>
+        // --- CẤU HÌNH SUPABASE ---
         const SUPABASE_URL = 'https://znfxhbrkabxenuzrcogd.supabase.co';
-        const ANON_KEY = 'YOUR_KEY';
+        const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ0Mjk4NSwiZXhwIjoyMDkxMDE4OTg1fQ.qNtUEq0HebqEs6tHrWT6Ghj94-UOb5dshIWAvWB8r6Y';
 
         const supa = supabase.createClient(SUPABASE_URL, ANON_KEY);
-
         const tableBody = document.getElementById("data-table");
         const statusDiv = document.getElementById("status");
+        const controlStatusDiv = document.getElementById("control-status");
 
-        let pollingInterval = null;
-        let isRealtimeActive = false;
+        // --- XỬ LÝ DỮ LIỆU ---
 
-        /* CONFIG */
-        function getConfig() {
-            return {
-                limit: parseInt(document.getElementById("limit").value) || 20,
-                refresh: parseInt(document.getElementById("refresh").value) * 1000 || 5000
-            };
-        }
-
-        /* ADD ROW */
         function addRow(log, isNew = false) {
-            const config = getConfig();
-
+            const limit = parseInt(document.getElementById("limit").value) || 50;
             const row = tableBody.insertRow(0);
             if (isNew) row.classList.add("new-row");
 
             row.innerHTML = `
-        <td>#${log.id}</td>
-        <td><span class="badge">DEV ${log.device_id}</span></td>
-        <td>${log.voltage?.toFixed(1) || 0}</td>
-        <td>${log.current?.toFixed(2) || 0}</td>
-        <td>${log.power?.toFixed(1) || 0}</td>
-        <td>${log.energy?.toFixed(2) || 0}</td>
-        <td>${new Date(log.created_at).toLocaleTimeString()}</td>
-    `;
+                <td>#${log.id}</td>
+                <td><span class="badge">DEV ${log.device_id}</span></td>
+                <td>${log.voltage ? log.voltage.toFixed(1) : '0.0'}</td>
+                <td>${log.current ? log.current.toFixed(2) : '0.00'}</td>
+                <td>${log.power ? log.power.toFixed(1) : '0.0'}</td>
+                <td>${log.energy ? log.energy.toFixed(2) : '0.00'}</td>
+                <td>${new Date(log.created_at).toLocaleTimeString()}</td>
+            `;
 
-            if (tableBody.rows.length > config.limit) {
+            if (tableBody.rows.length > limit) {
                 tableBody.deleteRow(tableBody.rows.length - 1);
             }
         }
 
-        /* LOAD DATA */
         async function loadInitialData() {
-            const config = getConfig();
+            const limit = parseInt(document.getElementById("limit").value) || 50;
+            statusDiv.innerHTML = "🔄 Đang tải...";
 
-            const { data } = await supa
+            const { data, error } = await supa
                 .from('sensor_data')
                 .select('*')
                 .order('id', { ascending: false })
-                .limit(config.limit);
+                .limit(limit);
+
+            if (error) {
+                statusDiv.innerHTML = "❌ Lỗi kết nối DB";
+                return;
+            }
 
             tableBody.innerHTML = "";
-            data.reverse().forEach(addRow);
+            [...data].reverse().forEach(log => addRow(log, false));
+            statusDiv.innerHTML = "🟢 Hệ thống OK";
         }
 
-        /* REALTIME */
         function startRealtime() {
-            const channel = supa.channel('realtime');
+            supa.channel('any')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' }, payload => {
+                    addRow(payload.new, true);
+                }).subscribe();
+        }
 
-            channel.on('postgres_changes', {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'sensor_data'
-            }, (payload) => {
-                addRow(payload.new, true);
-            }).subscribe((status) => {
+        // --- XỬ LÝ ĐIỀU KHIỂN ---
 
-                if (status === "SUBSCRIBED") {
-                    isRealtimeActive = true;
-                    statusDiv.innerHTML = "🟢 Realtime OK";
+        async function controlDevice(deviceId, status) {
+            const apiBase = document.getElementById("api").value;
+            controlStatusDiv.innerHTML = `⏳ Gửi lệnh ${status}...`;
+            controlStatusDiv.style.color = "#f1c40f";
+
+            try {
+                // Gọi tới API Spring Boot
+                const response = await fetch(`${apiBase}/api/device/control?deviceId=${deviceId}&status=${status}`);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    controlStatusDiv.innerHTML = `✅ ${status} THÀNH CÔNG`;
+                    controlStatusDiv.style.color = "#2ecc71";
+                } else {
+                    controlStatusDiv.innerHTML = `❌ Lỗi API (${response.status})`;
+                    controlStatusDiv.style.color = "#e74c3c";
                 }
+            } catch (error) {
+                controlStatusDiv.innerHTML = "❌ Không tìm thấy Backend";
+                controlStatusDiv.style.color = "#e74c3c";
+            }
 
-                if (status === "CHANNEL_ERROR") {
-                    statusDiv.innerHTML = "⚠️ Realtime lỗi → polling";
-                    startPolling();
-                }
-            });
+            // Reset text sau 2 giây
+            setTimeout(() => {
+                controlStatusDiv.innerHTML = "Sẵn sàng";
+                controlStatusDiv.style.color = "#9bb3c9";
+            }, 2000);
         }
 
-        /* POLLING */
-        function startPolling() {
-            const config = getConfig();
+        function manualCheck() { loadInitialData(); }
 
-            if (pollingInterval) clearInterval(pollingInterval);
-
-            pollingInterval = setInterval(loadInitialData, config.refresh);
-        }
-
-        /* BUTTON */
-        function manualCheck() {
-            loadInitialData();
-        }
-
-        /* INIT */
+        // --- KHỞI CHẠY ---
         async function init() {
             await loadInitialData();
             startRealtime();
-
-            setTimeout(() => {
-                if (!isRealtimeActive) {
-                    statusDiv.innerHTML = "⚠️ Không có realtime → polling";
-                    startPolling();
-                }
-            }, 5000);
         }
 
         init();
     </script>
-
 </body>
 
 </html>

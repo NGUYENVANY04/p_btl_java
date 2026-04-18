@@ -5,6 +5,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.Iot.backend.service.quochoc;
+import com.Iot.backend.service.ducthinh;
+import java.util.Map;
 
 // import java.util.List;
 // import java.util.Map;
@@ -35,14 +37,16 @@ public class SupabaseController {
     @Autowired
     private quochoc quochocService;
 
-    // @Autowired
-    // private ducthinh ducThinhService;
+    @Autowired
+    private ducthinh ducthinhService;
 
     // @Autowired
     // private xuandat xuanDatService;
 
     // @Autowired
     // private daocuong daoCuongService;
+
+    // ================= QUOCHOC API =================
     @GetMapping("/quochoc/energy/yearly")
     public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
@@ -83,4 +87,19 @@ public class SupabaseController {
         return ResponseEntity.ok(quochocService.getAlertsByDay(day));
     }
 
+    // ================= DUCTHINH API =================
+    // 🔌 Điều khiển ON/OFF thiết bị
+    @GetMapping("/device/control")
+    public ResponseEntity<?> controlDevice(
+            @RequestParam Integer deviceId,
+            @RequestParam String status) {
+
+        String result = ducthinhService.controlDevice(deviceId, status);
+        return ResponseEntity.ok().body(Map.of(
+                "deviceId", deviceId,
+                "status", status.toUpperCase(),
+                "message", result));
+    }
+
+    // Các API khác của quochoc... (giữ nguyên như file cũ của bạn)
 }
