@@ -1,13 +1,13 @@
 package com.example.demo.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class DeviceLimit {
     private Integer id;
     private Integer device_id;
     private Float max_power;
     private Float max_current;
-    private LocalDateTime created_at;
+    private OffsetDateTime created_at;
 
     public DeviceLimit() {
     }
@@ -44,11 +44,11 @@ public class DeviceLimit {
         this.max_current = max_current;
     }
 
-    public LocalDateTime getCreated_at() {
+    public OffsetDateTime getCreated_at() {
         return created_at;
     }
 
-    public void setCreated_at(LocalDateTime created_at) {
+    public void setCreated_at(OffsetDateTime created_at) {
         this.created_at = created_at;
     }
 }

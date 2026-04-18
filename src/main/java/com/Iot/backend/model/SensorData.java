@@ -1,6 +1,6 @@
 package com.example.demo.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class SensorData {
     private Integer id;
@@ -9,7 +9,7 @@ public class SensorData {
     private Float current;
     private Float power;
     private Float energy;
-    private LocalDateTime created_at;
+    private OffsetDateTime created_at;
 
     public SensorData() {
     }
@@ -62,11 +62,11 @@ public class SensorData {
         this.energy = energy;
     }
 
-    public LocalDateTime getCreated_at() {
+    public OffsetDateTime getCreated_at() {
         return created_at;
     }
 
-    public void setCreated_at(LocalDateTime created_at) {
+    public void setCreated_at(OffsetDateTime created_at) {
         this.created_at = created_at;
     }
 }

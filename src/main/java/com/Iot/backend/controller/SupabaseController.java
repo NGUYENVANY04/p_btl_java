@@ -1,67 +1,75 @@
 package com.example.demo.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-// import com.example.demo.service.vany;
+import com.example.demo.dto.AlertResponse;
+import com.example.demo.dto.DeviceResponse;
+import com.example.demo.dto.MonitorHistoryResponse;
 import com.example.demo.service.quochoc;
-// import com.example.demo.service.ducthinh;
-// import com.example.demo.service.xuandat;
-// import com.example.demo.service.daocuong;
+import com.example.demo.service.xuandat;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-// import java.util.List;
-// import java.util.Map;
-
-/**
- * SupabaseController
- * ------------------
- * Controller chính dùng 5 service:
- * - vany
- * - quochoc
- * - ducthinh
- * - xuandat
- * - daocuong
- *
- * Mỗi service có thể triển khai GET/POST/PUT/DELETE riêng.
- */
+import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
 public class SupabaseController {
 
-    // -----------------------
-    // Inject các service
-    // -----------------------
-    // @Autowired
-    // private vany vanyService;
+    private final quochoc quochocService;
+    private final xuandat xuanDatService;
 
-    @Autowired
-    private quochoc quochocService;
+    public SupabaseController(quochoc quochocService, xuandat xuanDatService) {
+        this.quochocService = quochocService;
+        this.xuanDatService = xuanDatService;
+    }
 
-    // @Autowired
-    // private ducthinh ducThinhService;
-
-    // @Autowired
-    // private xuandat xuanDatService;
-
-    // @Autowired
-    // private daocuong daoCuongService;
     @GetMapping("/quochoc/energy/yearly")
     public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
     }
 
-    // MONTH → ngày
     @GetMapping("/quochoc/energy/monthly")
     public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
         return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
     }
 
-    // DAY → raw theo giờ
     @GetMapping("/quochoc/data/day")
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));
     }
 
+    @GetMapping("/xuandat/devices")
+    public ResponseEntity<List<DeviceResponse>> getXuandatDevices() {
+        return ResponseEntity.ok(xuanDatService.getDevices());
+    }
+
+    @GetMapping("/xuandat/history")
+    public ResponseEntity<MonitorHistoryResponse> getXuandatHistory(
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String bucket) {
+        return ResponseEntity.ok(xuanDatService.getHistory(deviceId, from, to, bucket));
+    }
+
+    @GetMapping("/xuandat/alerts")
+    public ResponseEntity<List<AlertResponse>> getXuandatAlerts(
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(xuanDatService.getAlerts(deviceId, from, to));
+    }
+
+    @GetMapping("/xuandat/export/excel")
+    public ResponseEntity<byte[]> exportXuandatExcel(
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String bucket) {
+        return xuanDatService.exportExcel(deviceId, from, to, bucket);
+    }
 }
