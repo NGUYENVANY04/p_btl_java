@@ -1,5 +1,7 @@
 package com.Iot.backend.service;
 
+import com.Iot.backend.dto.DeviceDTO;
+import com.Iot.backend.dto.DeviceRequestDTO;
 import com.Iot.backend.repository.*;
 import org.springframework.stereotype.Service;
 import java.util.*;
@@ -14,8 +16,19 @@ public class DeviceService {
         }
 
         // ===================== DEVICE =====================
-        public Map<String, Object> createDevice(Map<String, Object> device) {
-                return repository.createDevice(device);
+        public DeviceDTO createDevice(DeviceRequestDTO request) {
+
+                Map<String, Object> map = new HashMap<>();
+                map.put("name", request.getName());
+                map.put("location", request.getLocation());
+
+                Map<String, Object> result = repository.createDevice(map);
+
+                return new DeviceDTO(
+                                ((Number) result.get("id")).longValue(),
+                                (String) result.get("name"),
+                                (String) result.get("location"),
+                                (Boolean) result.get("status"));
         }
 
         public List<Map<String, Object>> getAllDevices() {

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Ngân Sách Điện</title>
+    <link rel="stylesheet" href="css/budget.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>Quản Lý Ngân Sách Điện</h1>
+                <p class="subtitle">Theo dõi chi phí điện năng của bạn</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Thống kê chính -->
+            <section class="dashboard-section">
+                <div class="stats-grid">
+                    <!-- Hạn mức ngân sách -->
+                    <div class="stat-card budget-card">
+                        <div class="stat-header">
+                            <span class="stat-label">Hạn Mức Tháng Này</span>
+                            <button class="btn-edit" onclick="toggleEditBudget()"></button>
+                        </div>
+                        <div id="budgetDisplay" class="stat-value">
+                            <span class="amount">0</span>
+                            <span class="unit">kWh</span>
+                        </div>
+                        <div id="budgetEditForm" class="edit-form" style="display: none;">
+                            <input type="number" id="budgetInput" placeholder="Nhập hạn mức (kWh)" min="0" step="0.1">
+                            <div class="button-group">
+                                <button class="btn-save" onclick="saveBudget()">Lưu</button>
+                                <button class="btn-cancel" onclick="toggleEditBudget()">Hủy</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mức tiêu thụ hiện tại -->
+                    <div class="stat-card usage-card">
+                        <span class="stat-label">Đã Sử Dụng</span>
+                        <div class="stat-value">
+                            <span id="currentUsage" class="amount">0</span>
+                            <span class="unit">kWh</span>
+                        </div>
+                        <div class="last-update">Cập nhật: <span id="lastUpdate">--:--</span></div>
+                    </div>
+
+                    <!-- Phần trăm sử dụng -->
+                    <div class="stat-card percentage-card">
+                        <span class="stat-label">% Đã Sử Dụng</span>
+                        <div class="percentage-display">
+                            <div class="percentage-value" id="percentageValue">0%</div>
+                        </div>
+                        <div class="status-text" id="statusText">Sử dụng bình thường</div>
+                    </div>
+
+                    <!-- Chi phí ước tính -->
+                    <div class="stat-card cost-card">
+                        <span class="stat-label">Chi Phí Ước Tính</span>
+                        <div class="stat-value">
+                            <span id="estimatedCost" class="amount">0</span>
+                            <span class="unit">₫</span>
+                        </div>
+                        <div class="cost-note">Giá: <span id="pricePerKwh">3,000</span> ₫/kWh</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Progress Bar -->
+            <section class="progress-section">
+                <div class="progress-container">
+                    <div class="progress-info">
+                        <h3>Tiến độ sử dụng</h3>
+                        <div class="progress-stats">
+                            <span>Còn lại: <strong id="remainingKwh">0</strong> kWh</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-wrapper">
+                        <div class="progress-bar-bg">
+                            <div id="progressBar" class="progress-bar-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-label" id="progressLabel">0%</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Biểu đồ -->
+            <section class="chart-section">
+                <div class="chart-container">
+                    <h3>Biểu Đồ Tiêu Thụ Hàng Ngày</h3>
+                    <canvas id="dailyChart" height="80"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h3>Phân Bổ Chi Phí</h3>
+                    <canvas id="costChart" height="80"></canvas>
+                </div>
+            </section>
+
+            <!-- Lịch sử tiêu thụ -->
+            <section class="history-section">
+                <div class="section-header">
+                    <h3>Lịch Sử Tiêu Thụ</h3>
+                    <button class="btn-primary" onclick="refreshData()"> Làm Mới</button>
+                </div>
+                <div class="table-responsive">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Tiêu Thụ (kWh)</th>
+                                <th>Chi Phí (₫)</th>
+                                <th>Ghi Chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <!-- Dữ liệu sẽ được thêm bằng JavaScript -->
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: #999;">Chưa có dữ liệu</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Cài đặt -->
+            <section class="settings-section">
+                <h3> Cài Đặt</h3>
+                <div class="settings-grid">
+                    <div class="setting-item">
+                        <label for="priceInput">Giá tiền/kWh (₫):</label>
+                        <input type="number" id="priceInput" value="3000" min="0" step="100">
+                        <button class="btn-small" onclick="updatePrice()">Cập Nhật</button>
+                    </div>
+                    <div class="setting-item">
+                        <label for="monthInput">Tháng:</label>
+                        <input type="month" id="monthInput">
+                        <button class="btn-small" onclick="changeMonth()">Chuyển</button>
+                    </div>
+                    <div class="setting-item">
+                        <label for="warningLevel">Cảnh báo tại (%):</label>
+                        <input type="number" id="warningLevel" value="80" min="0" max="100" step="5">
+                        <button class="btn-small" onclick="updateWarningLevel()">Cập Nhật</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Thêm dữ liệu thủ công (Cho đến khi có backend) -->
+            <section class="add-data-section">
+                <h3>Thêm Dữ Liệu Tiêu Thụ</h3>
+                <div class="add-data-form">
+                    <div class="form-group">
+                        <label for="dataDate">Ngày:</label>
+                        <input type="date" id="dataDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="dataUsage">Tiêu Thụ (kWh):</label>
+                        <input type="number" id="dataUsage" placeholder="0" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="dataNotes">Ghi Chú:</label>
+                        <input type="text" id="dataNotes" placeholder="(Tùy chọn)">
+                    </div>
+                    <button class="btn-primary" onclick="addData()">Thêm Dữ Liệu</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2026 Hệ Thống Quản Lý Ngân Sách Điện. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script src="js/budget.js"></script>
+</body>
+</html>

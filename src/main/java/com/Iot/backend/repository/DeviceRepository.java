@@ -141,7 +141,7 @@ public class DeviceRepository {
 
             ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
                     url,
-                    HttpMethod.PATCH,
+                    HttpMethod.PUT,
                     entity,
                     new ParameterizedTypeReference<List<Map<String, Object>>>() {
                     });

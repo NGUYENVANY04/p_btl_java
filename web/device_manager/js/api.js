@@ -23,6 +23,7 @@ async function createDevice(data) {
         const errText = await res.text();
         throw new Error(errText);
     }
+    console.log("DEVICE RESPONSE:");
 
     return await res.json();
 }

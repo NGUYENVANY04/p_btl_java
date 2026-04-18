@@ -1,76 +1,182 @@
-// ==================== Authentication ==================== 
+// ==================== Authentication ====================
 let currentUser = null;
 let charts = {};
 
-function handleLogin(event) {
+// User database (in production, this would be on the server)
+const userDatabase = [
+    {
+        id: 1,
+        name: 'Admin',
+        username: 'admin',
+        password: 'admin',
+        email: 'admin@iot-dashboard.com',
+        role: 'admin',
+        permissions: ['all']
+    },
+    {
+        id: 2,
+        name: 'Nguyễn Văn A',
+        username: 'user1',
+        password: 'user123',
+        email: 'user1@example.com',
+        role: 'user',
+        permissions: ['view_dashboard', 'view_sensors', 'view_budget', 'view_notifications']
+    },
+    {
+        id: 3,
+        name: 'Trần Thị B',
+        username: 'user2',
+        password: 'user123',
+        email: 'user2@example.com',
+        role: 'user',
+        permissions: ['view_dashboard', 'view_sensors', 'view_budget']
+    },
+    {
+        id: 4,
+        name: 'Lê Văn C',
+        username: 'user3',
+        password: 'user123',
+        email: 'user3@example.com',
+        role: 'user',
+        permissions: ['view_dashboard', 'view_sensors']
+    }
+];
+
+async function handleLogin(event) {
     event.preventDefault();
-    
-    const username = document.getElementById('username').value;
+
+    const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
-    
-    // Simple demo authentication (username: admin, password: admin)
-    if (username === 'admin' && password === 'admin') {
+
+    // ===== 1. CHECK ADMIN (hardcode) =====
+    if (email === 'admin' && password === 'admin') {
         currentUser = {
-            id: 1,
             name: 'Admin',
-            username: username,
-            email: 'admin@iot-dashboard.com'
+            role: 'admin'
         };
-        
-        // Update UI
-        document.getElementById('user-name').textContent = currentUser.name;
-        document.querySelector('.user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
-        
-        // Hide auth modal and show app
-        const authModal = document.getElementById('auth-modal');
-        authModal.classList.add('hidden');
-        
-        setTimeout(() => {
-            const mainApp = document.getElementById('main-app');
-            mainApp.classList.remove('hidden');
-            
-            // Load home page by default
-            setTimeout(() => {
-                changePage('home', document.querySelector('.nav-button.active'));
-            }, 100);
-        }, 300);
-    } else {
-        alert('Tên đăng nhập hoặc mật khẩu không đúng!\nDùng: admin / admin');
+
+        afterLoginSuccess();
+        return;
+    }
+
+    // ===== 2. USER LOGIN QUA API =====
+    try {
+        const response = await fetch("http://localhost:8080/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Sai tài khoản hoặc mật khẩu");
+        }
+
+        const data = await response.json();
+
+        currentUser = {
+            name: data.name || email,
+            role: 'user',
+            permissions: [
+                'view_dashboard',
+                'view_sensors',
+                'view_budget',
+                'view_notifications',
+                'manage_devices',
+                'manage_thresholds',
+                'manage_network',
+                'manage_accounts'
+
+            ]
+        };
+
+        afterLoginSuccess();
+
+    } catch (error) {
+        alert("Đăng nhập thất bại: " + error.message);
         document.getElementById('password').value = '';
     }
 }
+function afterLoginSuccess() {
+    // Update UI
+    document.getElementById('user-name').textContent = currentUser.name;
+    document.querySelector('.user-avatar').textContent = currentUser.name.charAt(0).toUpperCase();
 
-function handleLogout() {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-        currentUser = null;
-        
-        // Destroy charts
-        Object.values(charts).forEach(chart => {
-            if (chart) chart.destroy();
-        });
-        charts = {};
-        
-        // Show auth modal
+    updateRoleDisplay();
+    applyRolePermissions();
+
+    const authModal = document.getElementById('auth-modal');
+    authModal.classList.add('hidden');
+
+    setTimeout(() => {
         const mainApp = document.getElementById('main-app');
-        mainApp.classList.add('hidden');
-        
-        const authModal = document.getElementById('auth-modal');
-        authModal.classList.remove('hidden');
-        
-        // Reset form
-        document.getElementById('login-form').reset();
-    }
+        mainApp.classList.remove('hidden');
+
+        setTimeout(() => {
+            changePage('home', document.querySelector('.nav-button.active'));
+        }, 100);
+    }, 300);
+}
+
+function updateRoleDisplay() {
+    const userInfo = document.querySelector('.user-info');
+    const roleBadge = document.createElement('div');
+    roleBadge.className = `role-badge role-${currentUser.role}`;
+    roleBadge.textContent = currentUser.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+
+    // Remove existing role badge if any
+    const existingBadge = userInfo.querySelector('.role-badge');
+    if (existingBadge) existingBadge.remove();
+
+    userInfo.appendChild(roleBadge);
+}
+
+function applyRolePermissions() {
+    const navItems = document.querySelectorAll('.nav-button, .submenu button');
+
+    navItems.forEach(item => {
+        const url = item.getAttribute('onclick')?.match(/changePage\('([^']+)'/)?.[1];
+        if (url) {
+            const hasPermission = checkPermission(url);
+            item.style.display = hasPermission ? 'flex' : 'none';
+        }
+    });
+}
+
+function checkPermission(url) {
+    if (!currentUser || currentUser.role === 'admin') return true;
+
+    const permissions = currentUser.permissions || [];
+
+    // Map URLs to permissions
+    const permissionMap = {
+        'home': 'view_dashboard',
+        'usercase2/usercase2.html': 'view_sensors',
+        'budget_manager/budget.html': 'view_budget',
+        'usercase4/usercase4.html': 'view_notifications',
+        'device_manager/device.html': 'manage_devices',
+        'device_manager/threshold.html': 'manage_thresholds',
+        'usercase3/usercase3.html': 'manage_network',
+        'usercase5/usercase5.html': 'manage_accounts'
+    };
+
+    const requiredPermission = permissionMap[url];
+    return requiredPermission ? permissions.includes(requiredPermission) : false;
 }
 
 // ==================== Navigation ==================== 
 function toggleSubmenu(el) {
     const parent = el.parentElement;
-    
+
     // Close other submenus
     document.querySelectorAll('.nav-item').forEach(item => {
         if (item !== parent) item.classList.remove('active');
     });
-    
+
     parent.classList.toggle('active');
 }
 
@@ -80,20 +186,20 @@ function changePage(url, btn) {
     const pageTitle = document.getElementById('page-title');
     const pageSubtitle = document.getElementById('page-subtitle');
     const submenuBtn = btn && btn.closest('.submenu');
-    
+
     // Remove active from all main buttons and submenu buttons
     document.querySelectorAll('.nav-button').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.submenu button').forEach(b => b.classList.remove('active'));
-    
+
     if (url === 'home') {
         // Show home page
         homeContent.style.display = 'grid';
         contentFrame.style.display = 'none';
         pageTitle.textContent = 'Trang chủ';
         pageSubtitle.textContent = 'Chào mừng bạn đến với IoT Dashboard';
-        
+
         if (btn) btn.classList.add('active');
-        
+
         // Load home content
         loadHomeContent();
     } else {
@@ -101,7 +207,7 @@ function changePage(url, btn) {
         homeContent.style.display = 'none';
         contentFrame.style.display = 'block';
         contentFrame.src = url;
-        
+
         if (submenuBtn) {
             btn.classList.add('active');
             const parentNavItem = btn.closest('.nav-item');
@@ -109,11 +215,11 @@ function changePage(url, btn) {
         } else if (btn) {
             btn.classList.add('active');
         }
-        
+
         // Update page title based on URL
         updatePageTitle(url);
     }
-    
+
     // Close submenus only when not clicking a submenu item
     if (!submenuBtn) {
         document.querySelectorAll('.nav-item').forEach(item => {
@@ -125,7 +231,7 @@ function changePage(url, btn) {
 function updatePageTitle(url) {
     const pageTitle = document.getElementById('page-title');
     const pageSubtitle = document.getElementById('page-subtitle');
-    
+
     if (url.includes('device.html')) {
         pageTitle.textContent = 'Cấu hình thiết bị';
         pageSubtitle.textContent = 'Quản lý và cấu hình các thiết bị IoT';
@@ -141,22 +247,52 @@ function updatePageTitle(url) {
     } else if (url.includes('usercase4')) {
         pageTitle.textContent = 'Thông báo & Logs';
         pageSubtitle.textContent = 'Xem các thông báo và nhật ký hệ thống';
-    } else if (url.includes('usercase5')) {
-        pageTitle.textContent = 'Tài khoản & Firmware';
-        pageSubtitle.textContent = 'Quản lý tài khoản và cập nhật firmware';
+    } else if (url.includes('budget_manager/budget.html')) {
+        pageTitle.textContent = 'Quản lý ngân sách điện';
+        pageSubtitle.textContent = 'Theo dõi và quản lý chi phí điện năng';
     }
 }
 
-// ==================== Home Content ==================== 
+function handleLogout() {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        currentUser = null;
+
+        // Destroy charts
+        Object.values(charts).forEach(chart => {
+            if (chart) chart.destroy();
+        });
+        charts = {};
+
+        // Show auth modal
+        const mainApp = document.getElementById('main-app');
+        mainApp.classList.add('hidden');
+
+        const authModal = document.getElementById('auth-modal');
+        authModal.classList.remove('hidden');
+
+        // Reset form
+        document.getElementById('login-form').reset();
+    }
+}
+
+// ==================== Home Content ====================
 function loadHomeContent() {
     const homeContent = document.getElementById('home-content');
-    
-    homeContent.innerHTML = `
+
+    if (currentUser.role === 'admin') {
+        loadAdminDashboard(homeContent);
+    } else {
+        loadUserDashboard(homeContent);
+    }
+}
+
+function loadAdminDashboard(container) {
+    container.innerHTML = `
         <!-- Welcome Card -->
         <div class="welcome-card">
-            <h2> Chào mừng, ${currentUser.name}!</h2>
-            <p>Đây là bảng điều khiển IoT của bạn. Từ đây bạn có thể quản lý toàn bộ các thiết bị, cảm biến, và cài đặt hệ thống.</p>
-            
+            <h2>👑 Chào mừng, ${currentUser.name}!</h2>
+            <p>Bạn đang ở chế độ Quản trị viên. Từ đây bạn có thể quản lý toàn bộ hệ thống IoT, thiết bị, và người dùng.</p>
+
             <div class="stats">
                 <div class="stat-item">
                     <div class="stat-number">12</div>
@@ -176,29 +312,64 @@ function loadHomeContent() {
                 </div>
             </div>
         </div>
-        
+
+        <!-- System Overview -->
+        <div class="chart-card">
+            <h3>📊 Tổng quan hệ thống</h3>
+            <div class="admin-overview">
+                <div class="overview-item">
+                    <h4>👥 Người dùng</h4>
+                    <p>4 người dùng đang hoạt động</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="overview-item">
+                    <h4>🔧 Thiết bị</h4>
+                    <p>12/12 thiết bị online</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 100%"></div>
+                    </div>
+                </div>
+                <div class="overview-item">
+                    <h4>📡 MQTT</h4>
+                    <p>Kết nối ổn định</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 95%"></div>
+                    </div>
+                </div>
+                <div class="overview-item">
+                    <h4>💾 Dung lượng</h4>
+                    <p>45GB / 100GB sử dụng</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 45%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Temperature Chart -->
         <div class="chart-card">
-            <h3> Nhiệt độ (24h qua)</h3>
+            <h3>🌡️ Nhiệt độ (24h qua)</h3>
             <div class="chart-container">
                 <canvas id="temperature-chart"></canvas>
             </div>
         </div>
-        
+
         <!-- Humidity Chart -->
         <div class="chart-card">
-            <h3>Độ ẩm (24h qua)</h3>
+            <h3>💧 Độ ẩm (24h qua)</h3>
             <div class="chart-container">
                 <canvas id="humidity-chart"></canvas>
             </div>
         </div>
-        
+
         <!-- System Status -->
         <div class="info-card">
-            <h3> Trạng thái hệ thống</h3>
+            <h3>⚙️ Trạng thái hệ thống</h3>
             <div class="info-list">
                 <div class="info-item">
-                    <div class="info-icon"> </div>
+                    <div class="info-icon">📡</div>
                     <div class="info-text">
                         <h4>Kết nối MQTT</h4>
                         <p>Đã kết nối - 2 phút trước</p>
@@ -206,7 +377,7 @@ function loadHomeContent() {
                     </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-icon"> </div>
+                    <div class="info-icon">📶</div>
                     <div class="info-text">
                         <h4>WiFi Gateway</h4>
                         <p>Signal: 85% - Ổn định</p>
@@ -214,7 +385,7 @@ function loadHomeContent() {
                     </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-icon"> </div>
+                    <div class="info-icon">💾</div>
                     <div class="info-text">
                         <h4>Dung lượng lưu trữ</h4>
                         <p>Sử dụng: 45GB / 100GB</p>
@@ -222,7 +393,7 @@ function loadHomeContent() {
                     </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-icon"> </div>
+                    <div class="info-icon">⚡</div>
                     <div class="info-text">
                         <h4>Nguồn điện</h4>
                         <p>Ổn định - 220V AC</p>
@@ -230,20 +401,20 @@ function loadHomeContent() {
                     </div>
                 </div>
             </div>
-            
+
             <div class="quick-actions">
                 <button class="action-btn" onclick="alert('Tính năng sẽ được cập nhật')">Khởi động lại</button>
                 <button class="action-btn" onclick="alert('Tính năng sẽ được cập nhật')">Báo cáo</button>
                 <button class="action-btn" onclick="alert('Tính năng sẽ được cập nhật')">Cài đặt</button>
             </div>
         </div>
-        
+
         <!-- Device Status -->
         <div class="info-card">
-            <h3> Thiết bị</h3>
+            <h3>🔧 Thiết bị</h3>
             <div class="info-list">
                 <div class="info-item">
-                    <div class="info-icon"></div>
+                    <div class="info-icon">🏠</div>
                     <div class="info-text">
                         <h4>Cảm biến tầng 1</h4>
                         <p>Nhiệt độ: 24.5°C - Độ ẩm: 65%</p>
@@ -251,7 +422,139 @@ function loadHomeContent() {
                     </div>
                 </div>
                 <div class="info-item">
-                    <div class="info-icon"></div>
+                    <div class="info-icon">🏠</div>
+                    <div class="info-text">
+                        <h4>Cảm biến tầng 2</h4>
+                        <p>Nhiệt độ: 26.2°C - Độ ẩm: 72%</p>
+                        <span class="status-badge">Online</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">🏠</div>
+                    <div class="info-text">
+                        <h4>Cảm biến tầng 3</h4>
+                        <p>Nhiệt độ: 23.8°C - Độ ẩm: 58%</p>
+                        <span class="status-badge">Online</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">🌤️</div>
+                    <div class="info-text">
+                        <h4>Cảm biến ngoài trời</h4>
+                        <p>Nhiệt độ: 28.3°C - Độ ẩm: 45%</p>
+                        <span class="status-badge offline">Offline</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity -->
+        <div class="info-card">
+            <h3>📋 Hoạt động gần đây</h3>
+            <div class="info-list">
+                <div class="info-item">
+                    <div class="info-icon">⚠️</div>
+                    <div class="info-text">
+                        <h4>Cảnh báo vượt ngưỡng</h4>
+                        <p>Tầng 2 - Độ ẩm vượt 75% - 15 phút trước</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">🔄</div>
+                    <div class="info-text">
+                        <h4>Cập nhật firmware</h4>
+                        <p>v2.1.0 - Hoàn tất thành công - 2 giờ trước</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">👤</div>
+                    <div class="info-text">
+                        <h4>Đăng nhập hệ thống</h4>
+                        <p>User: ${currentUser.name} - 3 giờ trước</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Load charts for admin
+    setTimeout(() => {
+        initCharts();
+    }, 100);
+}
+
+function loadUserDashboard(container) {
+    container.innerHTML = `
+        <!-- Welcome Card -->
+        <div class="welcome-card">
+            <h2> Chào mừng, ${currentUser.name}!</h2>
+            <p>Đây là bảng điều khiển cá nhân của bạn. Bạn có thể theo dõi dữ liệu cảm biến và quản lý ngân sách điện.</p>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-number">--</div>
+                    <div class="stat-label">Thiết bị theo dõi</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">--</div>
+                    <div class="stat-label">Cảm biến</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">--</div>
+                    <div class="stat-label">Thông báo</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">--</div>
+                    <div class="stat-label">Tiết kiệm</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Budget Overview -->
+        <div class="chart-card">
+            <h3> Ngân sách điện tháng này</h3>
+            <div class="budget-overview">
+                <div class="budget-item">
+                    <h4>Hạn mức: <span id="user-budget-limit">0 kWh</span></h4>
+                    <p>Đã sử dụng: <span id="user-budget-used">0 kWh</span></p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="user-budget-progress" style="width: 0%"></div>
+                    </div>
+                    <p class="budget-status" id="user-budget-status">Chưa thiết lập</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperature Chart -->
+        <div class="chart-card">
+            <h3> Nhiệt độ (24h qua)</h3>
+            <div class="chart-container">
+                <canvas id="temperature-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Humidity Chart -->
+        <div class="chart-card">
+            <h3> Độ ẩm (24h qua)</h3>
+            <div class="chart-container">
+                <canvas id="humidity-chart"></canvas>
+            </div>
+        </div>
+
+        <!-- Device Status -->
+        <div class="info-card">
+            <h3> Thiết bị theo dõi</h3>
+            <div class="info-list">
+                <div class="info-item">
+                    <div class="info-icon"> </div>
+                    <div class="info-text">
+                        <h4>Cảm biến tầng 1</h4>
+                        <p>Nhiệt độ: 24.5°C - Độ ẩm: 65%</p>
+                        <span class="status-badge">Online</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon"> </div>
                     <div class="info-text">
                         <h4>Cảm biến tầng 2</h4>
                         <p>Nhiệt độ: 26.2°C - Độ ẩm: 72%</p>
@@ -261,68 +564,98 @@ function loadHomeContent() {
                 <div class="info-item">
                     <div class="info-icon"></div>
                     <div class="info-text">
-                        <h4>Cảm biến tầng 3</h4>
-                        <p>Nhiệt độ: 23.8°C - Độ ẩm: 58%</p>
-                        <span class="status-badge">Online</span>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-icon"> </div>
-                    <div class="info-text">
                         <h4>Cảm biến ngoài trời</h4>
                         <p>Nhiệt độ: 28.3°C - Độ ẩm: 45%</p>
-                        <span class="status-badge offline">Offline</span>
+                        <span class="status-badge">Online</span>
                     </div>
                 </div>
             </div>
         </div>
-        
+
+        <!-- Quick Actions -->
+        <div class="info-card">
+            <h3> Truy cập nhanh</h3>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="changePage('usercase2/usercase2.html', this)">📊 Xem dữ liệu cảm biến</button>
+                <button class="action-btn" onclick="changePage('budget_manager/budget.html', this)">⚡ Quản lý ngân sách</button>
+                ${currentUser.permissions.includes('view_notifications') ?
+            '<button class="action-btn" onclick="changePage(\'usercase4/usercase4.html\', this)">🔔 Thông báo</button>' : ''}
+            </div>
+        </div>
+
         <!-- Activity -->
         <div class="info-card">
-            <h3> Hoạt động gần đây</h3>
+            <h3> Hoạt động cá nhân</h3>
             <div class="info-list">
                 <div class="info-item">
-                    <div class="info-icon"></div>
+                    <div class="info-icon">👤</div>
                     <div class="info-text">
-                        <h4>Cảnh báo vượt ngưỡng</h4>
-                        <p>Tầng 2 - Độ ẩm vượt 75% - 15 phút trước</p>
+                        <h4>Đăng nhập hệ thống</h4>
+                        <p>${currentUser.name} - Hôm nay</p>
                     </div>
                 </div>
                 <div class="info-item">
                     <div class="info-icon"></div>
                     <div class="info-text">
-                        <h4>Cập nhật firmware</h4>
-                        <p>v2.1.0 - Hoàn tất thành công - 2 giờ trước</p>
+                        <h4>Tiết kiệm điện</h4>
+                        <p>Tiết kiệm được 15kWh so với tháng trước</p>
                     </div>
                 </div>
                 <div class="info-item">
                     <div class="info-icon"></div>
                     <div class="info-text">
-                        <h4>Khởi động lại hệ thống</h4>
-                        <p>Toàn bộ hệ thống khởi động thành công - 5 giờ trước</p>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <div class="info-icon"></div>
-                    <div class="info-text">
-                        <h4>Kết nối thiết bị mới</h4>
-                        <p>Sensor_05 đã kết nối - Hôm qua</p>
+                        <h4>Báo cáo hàng tháng</h4>
+                        <p>Đã tạo báo cáo tháng 3 - 5 ngày trước</p>
                     </div>
                 </div>
             </div>
         </div>
     `;
-    
-    // Initialize charts
-    initCharts();
+
+    // Load user-specific data
+    loadUserData();
+
+    // Load charts for user
+    setTimeout(() => {
+        initCharts();
+    }, 100);
 }
 
+function loadUserData() {
+    // Load budget data from localStorage (shared with budget manager)
+    const budget = localStorage.getItem('electricity_budget');
+    const usage = localStorage.getItem('electricity_usage');
+
+    if (budget && usage) {
+        const budgetLimit = parseFloat(budget);
+        const currentUsage = parseFloat(usage);
+        const percentage = budgetLimit > 0 ? (currentUsage / budgetLimit * 100) : 0;
+
+        document.getElementById('user-budget-limit').textContent = budgetLimit.toFixed(1) + ' kWh';
+        document.getElementById('user-budget-used').textContent = currentUsage.toFixed(2) + ' kWh';
+        document.getElementById('user-budget-progress').style.width = Math.min(percentage, 100) + '%';
+
+        const statusEl = document.getElementById('user-budget-status');
+        if (percentage >= 100) {
+            statusEl.textContent = ' Đã vượt quá hạn mức!';
+            statusEl.style.color = '#ef4444';
+        } else if (percentage >= 80) {
+            statusEl.textContent = ' Cần tiết kiệm';
+            statusEl.style.color = '#f59e0b';
+        } else {
+            statusEl.textContent = ' Trong hạn mức';
+            statusEl.style.color = '#10b981';
+        }
+    }
+}
+
+// ==================== Charts ====================
 function initCharts() {
     // Temperature Chart
     const tempCtx = document.getElementById('temperature-chart');
     if (tempCtx) {
         if (charts.temperature) charts.temperature.destroy();
-        
+
         charts.temperature = new Chart(tempCtx, {
             type: 'line',
             data: {
@@ -386,12 +719,12 @@ function initCharts() {
             }
         });
     }
-    
+
     // Humidity Chart
     const humidityCtx = document.getElementById('humidity-chart');
     if (humidityCtx) {
         if (charts.humidity) charts.humidity.destroy();
-        
+
         charts.humidity = new Chart(humidityCtx, {
             type: 'line',
             data: {
@@ -480,3 +813,16 @@ updateTime();
 window.addEventListener('load', () => {
     document.getElementById('username').focus();
 });
+
+// Hàm hiển thị màn hình Đăng ký
+function showRegister() {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+}
+
+// Hàm hiển thị màn hình Đăng nhập
+function showLogin() {
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+}
+
