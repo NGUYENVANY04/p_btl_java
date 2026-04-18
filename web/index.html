@@ -128,10 +128,22 @@
                     <span> Quản lý ngân sách điện</span>
                 </button>
 
-                <button class="nav-button" onclick="changePage('usercase5/usercase5.html', this)">
-                    <span class="icon"></span>
-                    <span>Tài khoản & Firmware</span>
-                </button>
+
+                <div class="nav-item">
+                    <button class="nav-button" onclick="toggleSubmenu(this)">
+                        <span class="icon"></span>
+                        <span>Thông tin hệ thống</span>
+                    </button>
+
+                    <div class="submenu">
+                        <button onclick="changePage('usercase5/usercase5TB.html', this)">
+                            Thông báo
+                        </button>
+                        <button onclick="changePage('usercase5/usercase5TT.html', this)">
+                            Tiêu thụ
+                        </button>
+                    </div>
+                </div>
             </nav>
 
             <div class="sidebar-footer">

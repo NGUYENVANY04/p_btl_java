@@ -171,12 +171,10 @@ function checkPermission(url) {
 // ==================== Navigation ==================== 
 function toggleSubmenu(el) {
     const parent = el.parentElement;
-
     // Close other submenus
     document.querySelectorAll('.nav-item').forEach(item => {
         if (item !== parent) item.classList.remove('active');
     });
-
     parent.classList.toggle('active');
 }
 
@@ -207,7 +205,6 @@ function changePage(url, btn) {
         homeContent.style.display = 'none';
         contentFrame.style.display = 'block';
         contentFrame.src = url;
-
         if (submenuBtn) {
             btn.classList.add('active');
             const parentNavItem = btn.closest('.nav-item');
@@ -231,7 +228,6 @@ function changePage(url, btn) {
 function updatePageTitle(url) {
     const pageTitle = document.getElementById('page-title');
     const pageSubtitle = document.getElementById('page-subtitle');
-
     if (url.includes('device.html')) {
         pageTitle.textContent = 'Cấu hình thiết bị';
         pageSubtitle.textContent = 'Quản lý và cấu hình các thiết bị IoT';
@@ -401,7 +397,6 @@ function loadAdminDashboard(container) {
                     </div>
                 </div>
             </div>
-
             <div class="quick-actions">
                 <button class="action-btn" onclick="alert('Tính năng sẽ được cập nhật')">Khởi động lại</button>
                 <button class="action-btn" onclick="alert('Tính năng sẽ được cập nhật')">Báo cáo</button>
@@ -655,7 +650,6 @@ function initCharts() {
     const tempCtx = document.getElementById('temperature-chart');
     if (tempCtx) {
         if (charts.temperature) charts.temperature.destroy();
-
         charts.temperature = new Chart(tempCtx, {
             type: 'line',
             data: {
@@ -719,12 +713,10 @@ function initCharts() {
             }
         });
     }
-
     // Humidity Chart
     const humidityCtx = document.getElementById('humidity-chart');
     if (humidityCtx) {
         if (charts.humidity) charts.humidity.destroy();
-
         charts.humidity = new Chart(humidityCtx, {
             type: 'line',
             data: {

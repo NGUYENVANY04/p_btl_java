@@ -13,9 +13,10 @@ import com.Iot.backend.service.UserService;
 
 import java.util.Map;
 
+@CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
 @RestController
 @RequestMapping("/api")
-@CrossOrigin("*") // fix CORS
+
 public class SupabaseController {
 
     // =========================
@@ -35,16 +36,26 @@ public class SupabaseController {
     // ENERGY API
     // =========================
 
+   
+    // Lấy dữ liệu tổng quan theo năm
+    @GetMapping("/quochoc/energy/overview")
+    public ResponseEntity<?> getEnergyOverview() {
+        return ResponseEntity.ok(quochocService.getEnergyOverview());
+    }
+
+    // Lấy dữ liệu năm -> trả về các tháng
     @GetMapping("/quochoc/energy/yearly")
     public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
         return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
     }
 
+    // Lấy dữ liệu tháng -> trả về các ngày
     @GetMapping("/quochoc/energy/monthly")
     public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
         return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
     }
 
+    // Lấy dữ liệu ngày -> trả về các giờ
     @GetMapping("/quochoc/data/day")
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));

@@ -1,0 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+
+body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0b1426; color: white; margin: 0; }
+.energy-box { background: linear-gradient(145deg, #162641, #0f1a30); border: 1px solid rgba(255, 255, 255, 0.05); }
+
+/* Nút bấm Tab */
+.tab-btn { padding: 8px 24px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; cursor: pointer; border: none; background: transparent; transition: 0.3s; }
+.tab-btn:hover { color: white; }
+.tab-btn.active { background-color: #334155; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+
+/* Ô nhập thời gian */
+.input-style-mini { background: #0f172a; color: white; border: 1px solid #1e293b; padding: 4px 10px; border-radius: 6px; font-size: 12px; outline: none; cursor: pointer; }
+.input-style-mini::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+/* Ô nhập cấu hình */
+.control-input { width: 100%; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 6px 12px; text-align: right; color: white; outline: none; font-size: 13px; transition: border 0.3s; }
+.control-input:focus { border-color: #10b981; }
+
+input[type="number"]::-webkit-inner-spin-button { display: none; }
+.chart-container { height: 400px !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0b1426; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
