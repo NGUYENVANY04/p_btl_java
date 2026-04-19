@@ -1,0 +1,212 @@
+/* ===== RESET & CƠ BẢN ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #0b1c2c;
+    color: #e6f1ff;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+.wrapper {
+    max-width: 1200px;
+    margin: auto;
+}
+
+/* ===== HEADER ===== */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    padding-bottom: 15px;
+}
+
+.header-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.btn-refresh {
+    background: #00e5ff;
+    color: #0b1c2c;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-refresh:hover {
+    background: #00b8cc;
+    transform: translateY(-1px);
+    box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.status-tag {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: #08131f;
+    color: #2ecc71;
+    border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+/* ===== CARD THIẾT BỊ ===== */
+.device-card {
+    background: #0f2235;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.device-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.device-name {
+    color: #00e5ff;
+    font-weight: bold;
+    font-size: 18px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.status-msg {
+    font-size: 11px;
+    color: #9bb3c9;
+    margin-bottom: 10px;
+    transition: color 0.3s;
+}
+
+/* ===== NÚT GẠT (TOGGLE) ===== */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 46px;
+    height: 22px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #3d4b5c;
+    transition: .4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 16px;
+    width: 16px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: #2ecc71;
+}
+
+input:checked+.slider:before {
+    transform: translateX(24px);
+}
+
+/* ===== BẢNG DỮ LIỆU ===== */
+.table-container {
+    border-radius: 8px;
+    background: #08131f;
+    margin-top: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(30, 58, 82, 1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #1e3a52;
+    font-size: 14px;
+}
+
+th {
+    color: #00e5ff;
+    background: #162d42;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* ===== HIỆU ỨNG REALTIME (WEBSOCKET) ===== */
+/* Khi có dòng mới chèn vào, dòng đó sẽ nháy sáng nhẹ */
+.new-row {
+    animation: highlightRow 2s ease-out;
+}
+
+@keyframes highlightRow {
+    0% {
+        background-color: rgba(0, 229, 255, 0.3);
+    }
+
+    /* Nháy màu xanh Neon */
+    50% {
+        background-color: rgba(0, 229, 255, 0.1);
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Tùy chỉnh thanh cuộn cho đẹp */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0b1c2c;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1e3a52;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00e5ff;
+}
