@@ -109,6 +109,7 @@ async function updateDevice(id, data) {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
+            id: id,
             name: data.name,
             location: data.location
         })

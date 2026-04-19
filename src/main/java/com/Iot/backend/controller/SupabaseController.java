@@ -1,21 +1,22 @@
 package com.Iot.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+<<<<<<< HEAD
 import org.springframework.web.client.HttpClientErrorException;
 
+=======
+>>>>>>> merge_hoc_y_thinh_v3
 import com.Iot.backend.dto.DeviceDTO;
 import com.Iot.backend.dto.DeviceRequestDTO;
-import com.Iot.backend.service.DeviceService;
-import com.Iot.backend.service.UserService;
-import com.Iot.backend.service.ducthinh;
+import com.Iot.backend.service.*;
 import java.util.Map;
 
-@CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
 @RestController
 @RequestMapping("/api")
-
+@CrossOrigin(origins = "*") // Mở để Frontend gọi được API
 public class SupabaseController {
 
     @Autowired
@@ -25,91 +26,105 @@ public class SupabaseController {
     @Autowired
     private ducthinh ducthinhService;
 
+<<<<<<< HEAD
     @PostMapping("/devices")
     public DeviceDTO create(@RequestBody DeviceRequestDTO request) {
         return deviceService.createDevice(request);
     }
+=======
+    // ================= QUOCHOC API (Thống kê) =================
+
+    @GetMapping("/quochoc/energy/overview")
+    public ResponseEntity<?> getEnergyOverview() {
+        return ResponseEntity.ok(quochocService.getEnergyOverview());
+    }
+
+    @GetMapping("/quochoc/energy/yearly")
+    public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
+        return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
+    }
+
+    @GetMapping("/quochoc/energy/monthly")
+    public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
+        return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
+    }
+
+    // ================= USER & AUTH =================
+>>>>>>> merge_hoc_y_thinh_v3
 
     @PostMapping("/users")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> info) {
         try {
-            Map<String, Object> result = userService.registerAccount(info);
-            return ResponseEntity.ok(result);
-
-        } catch (HttpClientErrorException e) {
-
-            String errorBody = e.getResponseBodyAsString();
-
-            if (errorBody.contains("users_email_key")) {
+            return ResponseEntity.ok(userService.registerAccount(info));
+        } catch (Exception e) {
+            // Kiểm tra lỗi trùng lặp một cách an toàn hơn
+            String msg = e.getMessage();
+            if (msg.contains("users_email_key"))
                 return ResponseEntity.status(409).body("Email đã tồn tại");
-            }
-
-            if (errorBody.contains("users_username_key")) {
+            if (msg.contains("users_username_key"))
                 return ResponseEntity.status(409).body("Username đã tồn tại");
-            }
-
-            return ResponseEntity.status(500).body("Lỗi server");
+            return ResponseEntity.status(500).body("Lỗi hệ thống: " + msg);
         }
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, Object> info) {
         try {
-            Map<String, Object> user = userService.login(info);
-            return ResponseEntity.ok(user);
-
+            return ResponseEntity.ok(userService.login(info));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(401).body(e.getMessage());
-
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Lỗi server");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 
-    // GET ALL
+    // ================= DEVICE MANAGEMENT =================
+
     @GetMapping("/devices")
     public ResponseEntity<?> getAllDevices() {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
-    @GetMapping("/device_limits")
-    public ResponseEntity<?> getAllLimitDevices() {
-        return ResponseEntity.ok(deviceService.getAllLimitDevices());
+    @PostMapping("/devices")
+    public ResponseEntity<DeviceDTO> create(@RequestBody DeviceRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deviceService.createDevice(request));
     }
 
-    @PutMapping("/device_limits/{id}")
-
-    public ResponseEntity<?> createLimitDevice(
-            @PathVariable Long id,
-            @RequestBody Map<String, Object> device) {
-        return ResponseEntity.ok(deviceService.createLimitDevice(id, device));
-    }
-
-    // UPDATE
     @PutMapping("/devices/{id}")
-    public ResponseEntity<?> updateDevice(@PathVariable Long id,
-            @RequestBody Map<String, Object> device) {
+    public ResponseEntity<?> updateDevice(@PathVariable Long id, @RequestBody Map<String, Object> device) {
         return ResponseEntity.ok(deviceService.updateDevice(id, device));
     }
 
-    // DELETE
     @DeleteMapping("/devices/{id}")
     public ResponseEntity<?> deleteDevice(@PathVariable Long id) {
         return ResponseEntity.ok(deviceService.deleteDevice(id));
     }
 
-    // ================= DUCTHINH API =================
-    // 🔌 Điều khiển ON/OFF thiết bị
-    @GetMapping("/device/control")
+    // ================= DUCTHINH API (Điều khiển) =================
+
+    // Đổi sang POST để đúng chuẩn thay đổi trạng thái
+    @PostMapping("/device/control")
     public ResponseEntity<?> controlDevice(
             @RequestParam Integer deviceId,
             @RequestParam String status) {
 
         String result = ducthinhService.controlDevice(deviceId, status);
-        return ResponseEntity.ok().body(Map.of(
+        return ResponseEntity.ok(Map.of(
                 "deviceId", deviceId,
                 "status", status.toUpperCase(),
+<<<<<<< HEAD
                 "message", result));
     }
 
 } // Các API khác của quochoc... (giữ nguyên như file cũ của bạn)
+=======
+                "message", result,
+                "timestamp", System.currentTimeMillis()));
+    }
+
+    // ================= ALERTS =================
+
+    @GetMapping("/quochoc/alerts/unread")
+    public ResponseEntity<?> getUnreadAlert() {
+        return ResponseEntity.ok(quochocService.getUnreadAlerts());
+    }
+}
+>>>>>>> merge_hoc_y_thinh_v3

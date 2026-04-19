@@ -131,6 +131,7 @@ public class DeviceRepository {
             String url = URL + "/devices?id=eq." + id;
             System.out.println(" SEND: " + url);
             Map<String, Object> body = new HashMap<>();
+            body.put("id", id);
             body.put("name", device.get("name"));
             body.put("location", device.get("location"));
             body.put("status", true);
