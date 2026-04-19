@@ -185,132 +185,184 @@
             <div class="status-box">Đang tải danh sách thiết bị từ Database...</div>
         </div>
     </div>
-
     <script>
-        // --- CẤU HÌNH SUPABASE ---
-        const SUPABASE_URL = 'https://znfxhbrkabxenuzrcogd.supabase.co';
+        // ================== SUPABASE CONFIG ==================
+        const SUPABASE_URL = "https://znfxhbrkabxenuzrcogd.supabase.co";
         const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ0Mjk4NSwiZXhwIjoyMDkxMDE4OTg1fQ.qNtUEq0HebqEs6tHrWT6Ghj94-UOb5dshIWAvWB8r6Y';
 
         const supa = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
         const statusDiv = document.getElementById("status");
         const dashboard = document.getElementById("device-dashboard");
 
-        // --- HÀM KHỞI TẠO BẢNG RIÊNG CHO MỖI THIẾT BỊ ---
+        const API = document.getElementById("api")?.value || "http://localhost:8080";
+
+        // ================== INIT DASHBOARD ==================
         async function initDashboard() {
-            const apiBase = document.getElementById("api").value;
+
+            const user = JSON.parse(sessionStorage.getItem("currentUser"));
+            if (!user || !user.id) {
+                statusDiv.innerHTML = "❌ Chưa đăng nhập";
+                return;
+            }
 
             try {
-                // 1. Lấy danh sách thiết bị
-                const response = await fetch(`${apiBase}/api/devices`);
-                const devices = await response.json();
+                // ================== 1. LẤY USER_DEVICES (SUPABASE) ==================
+                const { data: links, error: linkError } = await supa
+                    .from("user_devices")
+                    .select("*")
+                    .eq("user_id", user.id);
 
-                if (devices.length === 0) {
-                    dashboard.innerHTML = '<div class="status-box">⚠️ Không tìm thấy thiết bị nào trong Database.</div>';
+                if (linkError) {
+                    console.error(linkError);
+                    statusDiv.innerHTML = "❌ Lỗi Supabase user_devices";
                     return;
                 }
 
-                dashboard.innerHTML = ""; // Xóa thông báo cũ
+                if (!links || links.length === 0) {
+                    dashboard.innerHTML = `<div class="status-box">⚠️ User chưa có thiết bị</div>`;
+                    return;
+                }
 
-                // 2. Tạo Card cho từng thiết bị
+                // ================== 2. DEVICE IDS ==================
+                const deviceIds = links.map(l => Number(l.device_id));
+
+                // ================== 3. GET ALL DEVICES FROM BACKEND ==================
+                const res = await fetch(`${API}/api/devices`);
+                const allDevices = await res.json();
+
+                if (!allDevices || allDevices.length === 0) {
+                    dashboard.innerHTML = `<div class="status-box">⚠️ Không có device</div>`;
+                    return;
+                }
+
+                // ================== 4. FILTER BY ID ==================
+                const devices = allDevices.filter(d =>
+                    deviceIds.includes(Number(d.id))
+                );
+
+                // ================== 5. RENDER ==================
+                dashboard.innerHTML = "";
+
                 devices.forEach(device => {
+
                     const id = device.id;
                     const name = device.name || `Thiết bị ${id}`;
 
                     const deviceCard = document.createElement("div");
                     deviceCard.className = "card";
+
                     deviceCard.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #00e5ff33; padding-bottom: 10px;">
-                            <div style="font-size: 18px; font-weight: bold; color: #00e5ff;">🖥️ ${name} (ID: ${id})</div>
-                            <div class="btn-group" style="width: 250px;">
-                                <button class="btn-on" onclick="controlDevice(${id}, 'ON')">BẬT</button>
-                                <button class="btn-off" onclick="controlDevice(${id}, 'OFF')">TẮT</button>
-                            </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #00e5ff33;padding-bottom:10px;">
+                        <div style="font-size:18px;font-weight:bold;color:#00e5ff;">
+                            🖥️ ${name} (ID: ${id})
                         </div>
-                        <div id="ctrl-status-${id}" class="status-box" style="font-size: 11px; margin-top: 10px; color: #9bb3c9;">Trạng thái: Sẵn sàng</div>
-                        <div class="table-wrapper">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Mã tin</th>
-                                        <th>Điện áp (V)</th>
-                                        <th>Dòng điện (A)</th>
-                                        <th>Công suất (W)</th>
-                                        <th>Năng lượng (kWh)</th>
-                                        <th>Thời gian</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-body-${id}">
-                                    <tr><td colspan="6">Đang tải dữ liệu...</td></tr>
-                                </tbody>
-                            </table>
+
+                        <div class="btn-group" style="width:250px;">
+                            <button type="button" class="btn-on" onclick="controlDevice(${id}, 'ON')">BẬT</button>
+                            <button type="button" class="btn-off" onclick="controlDevice(${id}, 'OFF')">TẮT</button>
                         </div>
-                    `;
+                    </div>
+
+                    <div id="ctrl-status-${id}" class="status-box"
+                        style="font-size:11px;margin-top:10px;color:#9bb3c9;">
+                        Trạng thái: Sẵn sàng
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mã tin</th>
+                                    <th>Điện áp (V)</th>
+                                    <th>Dòng điện (A)</th>
+                                    <th>Công suất (W)</th>
+                                    <th>Năng lượng (kWh)</th>
+                                    <th>Thời gian</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body-${id}">
+                                <tr><td colspan="6">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
                     dashboard.appendChild(deviceCard);
 
-                    // Tải dữ liệu cũ cho từng bảng
                     loadInitialDataForDevice(id);
                 });
 
-                statusDiv.innerHTML = "🟢 Kết nối Backend thành công";
+                statusDiv.innerHTML = "🟢 Load devices theo user OK";
                 statusDiv.style.color = "#2ecc71";
 
-            } catch (error) {
-                statusDiv.innerHTML = "❌ Lỗi: Không kết nối được Backend (Cổng 8080)";
+            } catch (err) {
+                console.error(err);
+                statusDiv.innerHTML = "❌ Lỗi initDashboard";
                 statusDiv.style.color = "#e74c3c";
             }
         }
 
-        // --- TẢI DỮ LIỆU BAN ĐẦU THEO DEVICE ID ---
+        // ================== LOAD SENSOR DATA ==================
         async function loadInitialDataForDevice(deviceId) {
-            const limit = parseInt(document.getElementById("limit").value) || 10;
+
+            const limit = parseInt(document.getElementById("limit")?.value || 10);
             const tableBody = document.getElementById(`table-body-${deviceId}`);
 
             const { data, error } = await supa
-                .from('sensor_data')
-                .select('*')
-                .eq('device_id', deviceId)
-                .order('id', { ascending: false })
+                .from("sensor_data")
+                .select("*")
+                .eq("device_id", deviceId)
+                .order("id", { ascending: false })
                 .limit(limit);
 
-            if (error) return;
+            if (error) {
+                console.error(error);
+                return;
+            }
 
             tableBody.innerHTML = "";
-            [...data].reverse().forEach(log => renderRow(deviceId, log, false));
+
+            [...data].reverse().forEach(log => renderRow(deviceId, log));
         }
 
-        // --- VẼ DÒNG DỮ LIỆU ---
+        // ================== RENDER ROW ==================
         function renderRow(deviceId, log, isNew = false) {
+
             const tableBody = document.getElementById(`table-body-${deviceId}`);
             if (!tableBody) return;
 
-            const limit = parseInt(document.getElementById("limit").value) || 10;
             const row = tableBody.insertRow(0);
             if (isNew) row.classList.add("new-row");
 
             row.innerHTML = `
-                <td>#${log.id}</td>
-                <td>${log.voltage ? log.voltage.toFixed(1) : '0.0'}</td>
-                <td>${log.current ? log.current.toFixed(2) : '0.00'}</td>
-                <td>${log.power ? log.power.toFixed(1) : '0.0'}</td>
-                <td>${log.energy ? log.energy.toFixed(2) : '0.00'}</td>
-                <td>${new Date(log.created_at).toLocaleTimeString()}</td>
-            `;
-
-            if (tableBody.rows.length > limit) tableBody.deleteRow(tableBody.rows.length - 1);
+            <td>#${log.id}</td>
+            <td>${log.voltage?.toFixed(1) || "0.0"}</td>
+            <td>${log.current?.toFixed(2) || "0.00"}</td>
+            <td>${log.power?.toFixed(1) || "0.0"}</td>
+            <td>${log.energy?.toFixed(2) || "0.00"}</td>
+            <td>${new Date(log.created_at).toLocaleTimeString()}</td>
+        `;
         }
 
-        // --- REALTIME CHUYÊN BIỆT ---
+        // ================== REALTIME ==================
         function startRealtime() {
-            supa.channel('any').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'sensor_data' },
-                payload => {
+
+            supa.channel("sensor")
+                .on("postgres_changes", {
+                    event: "INSERT",
+                    schema: "public",
+                    table: "sensor_data"
+                }, payload => {
                     const newLog = payload.new;
-                    // Tự động tìm bảng có ID tương ứng để đẩy dữ liệu vào
                     renderRow(newLog.device_id, newLog, true);
-                }).subscribe();
+                })
+                .subscribe();
         }
 
-        // --- ĐIỀU KHIỂN ---
+        // ================== CONTROL DEVICE ==================
         async function controlDevice(deviceId, status) {
+
             const apiBase = document.getElementById("api").value;
             const statusLabel = document.getElementById(`ctrl-status-${deviceId}`);
 
@@ -318,15 +370,17 @@
             statusLabel.style.color = "#f1c40f";
 
             try {
-                const response = await fetch(`${apiBase}/api/device/control?deviceId=${deviceId}&status=${status}`);
-                if (response.ok) {
-                    statusLabel.innerHTML = `✅ Đã BẬT/TẮT thành công`;
+                const res = await fetch(`${apiBase}/api/device/control?deviceId=${deviceId}&status=${status}`);
+
+                if (res.ok) {
+                    statusLabel.innerHTML = "✅ Thành công";
                     statusLabel.style.color = "#2ecc71";
                 } else {
-                    statusLabel.innerHTML = `❌ Lỗi lệnh (${response.status})`;
+                    statusLabel.innerHTML = "❌ Lỗi server";
                     statusLabel.style.color = "#e74c3c";
                 }
-            } catch (error) {
+
+            } catch (err) {
                 statusLabel.innerHTML = "❌ Backend không phản hồi";
                 statusLabel.style.color = "#e74c3c";
             }
@@ -337,12 +391,11 @@
             }, 3000);
         }
 
-        function manualCheck() { initDashboard(); }
-
-        // Khởi động
+        // ================== INIT ==================
         initDashboard();
         startRealtime();
 
+    </script>
     </script>
 </body>
 
