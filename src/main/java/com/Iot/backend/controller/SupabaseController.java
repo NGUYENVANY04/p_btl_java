@@ -4,11 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-<<<<<<< HEAD
 import org.springframework.web.client.HttpClientErrorException;
 
-=======
->>>>>>> merge_hoc_y_thinh_v3
 import com.Iot.backend.dto.DeviceDTO;
 import com.Iot.backend.dto.DeviceRequestDTO;
 import com.Iot.backend.service.*;
@@ -26,31 +23,10 @@ public class SupabaseController {
     @Autowired
     private ducthinh ducthinhService;
 
-<<<<<<< HEAD
     @PostMapping("/devices")
     public DeviceDTO create(@RequestBody DeviceRequestDTO request) {
         return deviceService.createDevice(request);
     }
-=======
-    // ================= QUOCHOC API (Thống kê) =================
-
-    @GetMapping("/quochoc/energy/overview")
-    public ResponseEntity<?> getEnergyOverview() {
-        return ResponseEntity.ok(quochocService.getEnergyOverview());
-    }
-
-    @GetMapping("/quochoc/energy/yearly")
-    public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
-    }
-
-    @GetMapping("/quochoc/energy/monthly")
-    public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
-        return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
-    }
-
-    // ================= USER & AUTH =================
->>>>>>> merge_hoc_y_thinh_v3
 
     @PostMapping("/users")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> info) {
@@ -83,11 +59,6 @@ public class SupabaseController {
         return ResponseEntity.ok(deviceService.getAllDevices());
     }
 
-    @PostMapping("/devices")
-    public ResponseEntity<DeviceDTO> create(@RequestBody DeviceRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(deviceService.createDevice(request));
-    }
-
     @PutMapping("/devices/{id}")
     public ResponseEntity<?> updateDevice(@PathVariable Long id, @RequestBody Map<String, Object> device) {
         return ResponseEntity.ok(deviceService.updateDevice(id, device));
@@ -110,21 +81,21 @@ public class SupabaseController {
         return ResponseEntity.ok(Map.of(
                 "deviceId", deviceId,
                 "status", status.toUpperCase(),
-<<<<<<< HEAD
-                "message", result));
-    }
-
-} // Các API khác của quochoc... (giữ nguyên như file cũ của bạn)
-=======
                 "message", result,
                 "timestamp", System.currentTimeMillis()));
     }
 
-    // ================= ALERTS =================
-
-    @GetMapping("/quochoc/alerts/unread")
-    public ResponseEntity<?> getUnreadAlert() {
-        return ResponseEntity.ok(quochocService.getUnreadAlerts());
+    @GetMapping("/device_limits")
+    public ResponseEntity<?> getAllLimitDevices() {
+        return ResponseEntity.ok(deviceService.getAllLimitDevices());
     }
+
+    @PutMapping("/device_limits/{id}")
+
+    public ResponseEntity<?> createLimitDevice(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> device) {
+        return ResponseEntity.ok(deviceService.createLimitDevice(id, device));
+    }
+
 }
->>>>>>> merge_hoc_y_thinh_v3
