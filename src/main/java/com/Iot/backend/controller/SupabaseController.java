@@ -13,7 +13,7 @@ import com.Iot.backend.service.UserService;
 import com.Iot.backend.service.ducthinh;
 import java.util.Map;
 
-@CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
+// @CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
 @RestController
 @RequestMapping("/api")
 
