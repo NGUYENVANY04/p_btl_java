@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+*.lck
+Java_IoT_Service_*/
