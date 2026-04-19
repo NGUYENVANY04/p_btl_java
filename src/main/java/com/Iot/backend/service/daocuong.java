@@ -321,13 +321,13 @@ public class daocuong {
             item.setCurrent_over(currentOver);
             over.add(item);
 
-            if (powerOver && !hasUnreadAlert(deviceId, "POWER_OVER")) {
-                createAlert(deviceId, "POWER_OVER",
+            if (powerOver && !hasUnreadAlert(deviceId, "POWER_EXCEEDED")) {
+                createAlert(deviceId, "POWER_EXCEEDED",
                         "Vượt ngưỡng công suất: " + power + " > " + maxPower);
                 createdAlerts++;
             }
-            if (currentOver && !hasUnreadAlert(deviceId, "CURRENT_OVER")) {
-                createAlert(deviceId, "CURRENT_OVER",
+            if (currentOver && !hasUnreadAlert(deviceId, "CURRENT_EXCEEDED")) {
+                createAlert(deviceId, "CURRENT_EXCEEDED",
                         "Vượt ngưỡng dòng điện: " + current + " > " + maxCurrent);
                 createdAlerts++;
             }

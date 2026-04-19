@@ -6,12 +6,12 @@ import org.springframework.web.bind.annotation.*;
 
 // import com.Iot.backend.service.vany;
 import com.Iot.backend.service.quochoc;
-// import com.Iot.backend.service.ducthinh;
+import com.Iot.backend.service.ducthinh;
 // import com.Iot.backend.service.xuandat;
 import com.Iot.backend.service.daocuong;
 
 // import java.util.List;
-// import java.util.Map;
+import java.util.Map;
 
 /**
  * SupabaseController
@@ -39,8 +39,8 @@ public class SupabaseController {
     @Autowired
     private quochoc quochocService;
 
-    // @Autowired
-    // private ducthinh ducThinhService;
+    @Autowired
+    private ducthinh ducThinhService;
 
     // @Autowired
     // private xuandat xuanDatService;
@@ -80,6 +80,21 @@ public class SupabaseController {
     @GetMapping("/daocuong/alerts")
     public ResponseEntity<?> getAlerts(@RequestParam(defaultValue = "50") Integer limit) {
         return ResponseEntity.ok(daoCuongService.getLatestAlerts(limit != null ? limit : 50));
+    }
+
+    // ================= DUCTHINH API =================
+    // 🔌 Điều khiển ON/OFF thiết bị
+    @GetMapping("/device/control")
+    public ResponseEntity<?> controlDevice(
+            @RequestParam Integer deviceId,
+            @RequestParam String status) {
+
+        String result = ducThinhService.controlDevice(deviceId, status);
+        return ResponseEntity.ok().body(Map.of(
+                "deviceId", deviceId,
+                "status", status.toUpperCase(),
+                "message", result
+        ));
     }
 
 }
