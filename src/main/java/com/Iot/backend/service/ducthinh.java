@@ -162,6 +162,28 @@ public class ducthinh {
     }
 
     // ================= SEND TO SUPABASE (FIXED) =================
+
+    public String controlDevice(Integer deviceId, String status) {
+        // TẠO LUỒNG RIÊNG: Để Java trả về "Thành công" ngay lập tức cho Web
+        new Thread(() -> {
+            try {
+                if (mqttClient == null || !mqttClient.isConnected()) {
+                    connectMqtt();
+                }
+                String payload = String.format("{\"device_id\": %d, \"status\": \"%s\"}", deviceId,
+                        status.toUpperCase());
+                MqttMessage message = new MqttMessage(payload.getBytes());
+                message.setQos(0);
+                mqttClient.publish("ptit/test/request", message);
+                System.out.println("📤 MQTT Sent: " + payload);
+            } catch (MqttException e) {
+                e.printStackTrace();
+
+            }
+        }).start();
+        return "Thành công";
+    }
+
     private void sendToSupabase(String jsonPayload) {
 
         int maxRetry = 5;
@@ -174,62 +196,28 @@ public class ducthinh {
                 headers.set("apikey", apiKey);
                 headers.set("Authorization", "Bearer " + apiKey);
 
-                // ❌ FIX: KHÔNG UPSERT, KHÔNG ON CONFLICT
-                String url = supabaseUrl;
-
                 HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
 
                 ResponseEntity<String> response = restTemplate.postForEntity(
-                        url, entity, String.class);
+                        supabaseUrl, entity, String.class);
 
                 if (response.getStatusCode().is2xxSuccessful()) {
-                    System.out.println("✅ Supabase insert success");
+                    System.out.println("✅ Insert OK at: " + System.currentTimeMillis());
                     return;
                 }
 
             } catch (Exception e) {
-                System.err.println("❌ Supabase retry " + (i + 1) + ": " + e.getMessage());
-
-                try {
-                    Thread.sleep(delay);
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
-
-                delay *= 2;
-            }
-        }
-
-        System.err.println("💥 Supabase failed after retry!");
-    }
-
-    // ================= CONTROL DEVICE =================
-    public String controlDevice(Integer deviceId, String command) {
-        try {
-
-            if (mqttClient == null || !mqttClient.isConnected()) {
-                connectMqtt();
-                if (!mqttClient.isConnected()) {
-                    return "MQTT not connected";
-                }
+                System.err.println("❌ Retry " + (i + 1) + ": " + e.getMessage());
             }
 
-            // ❌ NO STATUS ANYMORE
-            String payload = String.format(
-                    "{\"device_id\": %d, \"command\": \"%s\"}",
-                    deviceId, command.toUpperCase());
+            try {
+                Thread.sleep(delay);
+            } catch (InterruptedException ignored) {
+            }
 
-            MqttMessage message = new MqttMessage(payload.getBytes());
-            message.setQos(0);
-
-            mqttClient.publish(controlTopic, message);
-
-            System.out.println("📤 Control sent: " + payload);
-            return "Success";
-
-        } catch (MqttException e) {
-            System.err.println("❌ MQTT error: " + e.getMessage());
-            return "Failed";
+            delay *= 2;
         }
+
+        System.err.println("💥 Failed after retry!");
     }
 }
