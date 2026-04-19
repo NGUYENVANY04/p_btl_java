@@ -42,6 +42,7 @@ const userDatabase = [
     }
 ];
 
+
 async function handleLogin(event) {
     event.preventDefault();
 
@@ -51,10 +52,12 @@ async function handleLogin(event) {
     // ===== 1. CHECK ADMIN (hardcode) =====
     if (email === 'admin' && password === 'admin') {
         currentUser = {
+            id: 0,
             name: 'Admin',
             role: 'admin'
         };
-
+        // Lưu vào bộ nhớ trình duyệt
+        sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
         afterLoginSuccess();
         return;
     }
@@ -78,25 +81,36 @@ async function handleLogin(event) {
 
         const data = await response.json();
 
-        currentUser = {
-            name: data.name || email,
-            role: 'user',
-            permissions: [
-                'view_dashboard',
-                'view_sensors',
-                'view_budget',
-                'view_notifications',
-                'manage_devices',
-                'manage_thresholds',
-                'manage_network',
-                'manage_accounts'
+        // Kiểm tra data có tồn tại không trước khi truy cập
+        if (data) {
+            currentUser = {
+                id: data.id,            // Lấy ID = 3 từ JSON của bạn
+                name: data.username,    // Đổi data.name thành data.username cho đúng JSON
+                email: data.email,      // Lấy email từ JSON
+                role: data.role || 'user',
+                permissions: [
+                    'view_dashboard',
+                    'view_sensors',
+                    'view_budget',
+                    'view_notifications',
+                    'manage_devices',
+                    'manage_thresholds',
+                    'manage_network',
+                    'manage_accounts'
+                ]
+            };
 
-            ]
-        };
+            // LƯU QUAN TRỌNG: Cất vào sessionStorage
+            sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
 
-        afterLoginSuccess();
+            console.log("Đăng nhập thành công, ID lưu lại là:", currentUser.id);
+            afterLoginSuccess();
+        } else {
+            throw new Error("Dữ liệu phản hồi trống");
+        }
 
     } catch (error) {
+        console.error("Lỗi chi tiết:", error);
         alert("Đăng nhập thất bại: " + error.message);
         document.getElementById('password').value = '';
     }
@@ -136,17 +150,18 @@ function updateRoleDisplay() {
 }
 
 function applyRolePermissions() {
-    const navItems = document.querySelectorAll('.nav-button, .submenu button');
+    const submenu = document.getElementById("system-submenu");
 
-    navItems.forEach(item => {
-        const url = item.getAttribute('onclick')?.match(/changePage\('([^']+)'/)?.[1];
-        if (url) {
-            const hasPermission = checkPermission(url);
-            item.style.display = hasPermission ? 'flex' : 'none';
-        }
-    });
+    if (!submenu) return;
+
+    if (currentUser.role === "admin") {
+        // ADMIN: ẩn 2 page con
+        submenu.style.display = "none";
+    } else {
+        // USER: hiện full
+        submenu.style.display = "block";
+    }
 }
-
 function checkPermission(url) {
     if (!currentUser || currentUser.role === 'admin') return true;
 
