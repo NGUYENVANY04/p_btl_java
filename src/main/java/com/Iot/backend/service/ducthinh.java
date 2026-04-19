@@ -176,23 +176,23 @@ public class ducthinh {
             options.setCleanSession(true);
             options.setConnectionTimeout(10);
 
-            mqttClient.setCallback(new MqttCallback() {
-                @Override
-                public void messageArrived(String topic, MqttMessage message) {
-                    String payload = new String(message.getPayload());
-                    System.out.println("📥 [MQTT] Nhận dữ liệu: " + payload);
-                    saveToDatabase(payload);
-                }
+            // mqttClient.setCallback(new MqttCallback() {
+            // @Override
+            // public void messageArrived(String topic, MqttMessage message) {
+            // String payload = new String(message.getPayload());
+            // System.out.println("📥 [MQTT] Nhận dữ liệu: " + payload);
+            // // saveToDatabase(payload);
+            // }
 
-                @Override
-                public void connectionLost(Throwable cause) {
-                    System.err.println("⚠️ [MQTT] Mất kết nối: " + cause.getMessage());
-                }
+            // @Override
+            // public void connectionLost(Throwable cause) {
+            // System.err.println("⚠️ [MQTT] Mất kết nối: " + cause.getMessage());
+            // }
 
-                @Override
-                public void deliveryComplete(IMqttDeliveryToken token) {
-                }
-            });
+            // @Override
+            // public void deliveryComplete(IMqttDeliveryToken token) {
+            // }
+            // });
 
             mqttClient.connect(options);
             mqttClient.subscribe(dataTopic);
@@ -227,26 +227,28 @@ public class ducthinh {
      * Gửi lệnh điều khiển thiết bị qua MQTT
      */
     public String controlDevice(Integer deviceId, String status) {
-        try {
-            // Kiểm tra kết nối trước khi gửi
-            if (mqttClient == null || !mqttClient.isConnected()) {
-                connectMqtt();
-                if (!mqttClient.isConnected())
-                    return "Lỗi: MQTT không thể kết nối!";
+        // TẠO LUỒNG RIÊNG: Để Java trả về "Thành công" ngay lập tức cho Web
+        new Thread(() -> {
+            try {
+                if (mqttClient == null || !mqttClient.isConnected()) {
+                    connectMqtt();
+                }
+                String payload = String.format("{\"device_id\": %d, \"status\": \"%s\"}", deviceId,
+                        status.toUpperCase());
+                MqttMessage message = new MqttMessage(payload.getBytes());
+                message.setQos(0);
+
+                // Việc gửi này có thể mất 2 giây, nhưng nó chạy ở luồng khác, không làm treo
+                // Web
+                mqttClient.publish("ptit/test/request", message);
+                System.out.println("📤 MQTT Sent: " + payload);
+            } catch (MqttException e) {
+                e.printStackTrace();
             }
+        }).start();
 
-            // Định dạng payload JSON chuẩn
-            String payload = String.format("{\"device_id\": %d, \"status\": \"%s\"}", deviceId, status.toUpperCase());
-            MqttMessage message = new MqttMessage(payload.getBytes());
-            message.setQos(1); // Đảm bảo tin nhắn đến được Broker
-
-            mqttClient.publish(controlTopic, message);
-
-            System.out.println("📤 [Control] Đã gửi lệnh tới thiết bị " + deviceId + ": " + status);
-            return "Thành công";
-        } catch (MqttException e) {
-            System.err.println("❌ [Control] Lỗi gửi MQTT: " + e.getMessage());
-            return "Lỗi gửi lệnh";
-        }
+        // Dòng này chạy ngay lập tức (~1ms), Web sẽ nhận được phản hồi cực nhanh ->
+        // KHÔNG RELOAD
+        return "Thành công";
     }
 }

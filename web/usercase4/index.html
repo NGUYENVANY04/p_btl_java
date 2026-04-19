@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ thống Giám sát & Điều khiển Năng lượng</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="wrapper">
+        <div class="card">
+            <div class="title">⚙️ Cấu hình hệ thống & Trạng thái</div>
+
+            <div class="config-bar">
+                <div>
+                    <label>Địa chỉ API Backend</label>
+                    <input id="api" value="http://localhost:8080">
+                </div>
+
+                <div>
+                    <label>Số dòng hiển thị/bảng</label>
+                    <input id="limit" value="10" type="number">
+                </div>
+
+                <button class="btn-primary" onclick="manualCheck()">⚡ Làm mới danh sách</button>
+            </div>
+
+            <div class="status-box" id="status">🔄 Đang kiểm tra kết nối...</div>
+        </div>
+
+        <div id="device-dashboard">
+            <div class="status-box">Đang tải danh sách thiết bị từ Database...</div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
