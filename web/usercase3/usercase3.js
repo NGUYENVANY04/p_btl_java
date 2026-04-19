@@ -283,18 +283,28 @@ async function renderLogs() {
         if (CONFIG.USE_MOCK_DATA) {
             // Chế độ giả lập vì API chưa có data thật
             const logs = [
-                { time: "16:30:00 17/04/2026", u: 224.5, i: 2.45, p: 550.0 },
-                { time: "16:15:00 17/04/2026", u: 225.1, i: 2.50, p: 562.7 },
-                { time: "16:00:00 17/04/2026", u: 223.8, i: 1.10, p: 246.1 },
-                { time: "15:45:00 17/04/2026", u: 224.0, i: 1.05, p: 235.2 },
-                { time: "15:30:00 17/04/2026", u: 222.5, i: 0.95, p: 211.3 }
+                { time: "16:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", u: 224.5, i: 2.45, p: 550.0 },
+                { time: "16:15:00 17/04/2026", device: "Trần Thị B (Nhà 102)", u: 225.1, i: 2.50, p: 562.7 },
+                { time: "16:00:00 17/04/2026", device: "Trần Thị B (Nhà 102)", u: 223.8, i: 1.10, p: 246.1 },
+                { time: "15:45:00 17/04/2026", device: "Lê Văn C (Nhà 103)", u: 224.0, i: 1.05, p: 235.2 },
+                { time: "15:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", u: 222.5, i: 0.95, p: 211.3 }
             ];
             tbody.innerHTML = '';
-            logs.forEach(log => {
+            
+            // Lấy id filter user hiện tại
+            const filterUser = document.getElementById('filter-user').value;
+            let displayLogs = logs;
+            if (filterUser !== "all") {
+                const userTextMap = { "101": "Nguyễn Văn A", "102": "Trần Thị B", "103": "Lê Văn C" };
+                displayLogs = logs.filter(l => l.device.includes(userTextMap[filterUser]));
+            }
+
+            displayLogs.forEach(log => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-800/30 transition-colors';
                 tr.innerHTML = `
                     <td class="px-4 py-3">${log.time}</td>
+                    <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30">${log.device}</td>
                     <td class="px-4 py-3 text-blue-300">${log.u}</td>
                     <td class="px-4 py-3 text-orange-300">${log.i}</td>
                     <td class="px-4 py-3 text-yellow-300">${log.p}</td>
@@ -306,22 +316,38 @@ async function renderLogs() {
 
         // Chế độ API thật
         const today = document.getElementById('filter-date').value;
+        const filterUserAPI = document.getElementById('filter-user').value;
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
         if (!response.ok) return;
         
         const logsData = await response.json();
         tbody.innerHTML = '';
         
-        // Reverse để lấy dữ liệu mới nhất lên đầu, giới hạn hiển thị khoảng 15 dòng
-        // API quochoc trả về: {time, voltage, current, power, energy}
-        // mảng logsData lộn ngược lại
-        logsData.reverse().slice(0, 15).forEach(log => {
+        // Cắt bớt và lật ngược
+        let displayLogsAPI = logsData.reverse().slice(0, 50);
+        
+        // Giả sử API chưa trả về tên khách hàng, ta gán tên ảo để demo Admin View
+        const demoNames = ["Nguyễn Văn A (Nhà 101)", "Trần Thị B (Nhà 102)", "Lê Văn C (Nhà 103)"];
+        let counter = 0;
+
+        displayLogsAPI.forEach(log => {
+            // Fake assigned name cho trường hợp data thật thiếu device_id
+            let assignedName = demoNames[counter % demoNames.length];
+            if (filterUserAPI !== "all") {
+                const sel = document.getElementById('filter-user');
+                assignedName = sel.options[sel.selectedIndex].text;
+            } else {
+                counter++;
+            }
+
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-800/30 transition-colors';
             // Ghép time và ngày hôm nay
             const displayTime = `${log.time} ${today.split('-').reverse().join('/')}`;
             tr.innerHTML = `
                 <td class="px-4 py-3">${displayTime}</td>
+                <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30">${assignedName}</td>
                 <td class="px-4 py-3 text-blue-300">${log.voltage || 0.0}</td>
                 <td class="px-4 py-3 text-orange-300">${log.current || 0.0}</td>
                 <td class="px-4 py-3 text-yellow-300">${log.power || 0.0}</td>
@@ -356,6 +382,9 @@ document.getElementById('btn-filter')?.addEventListener('click', function () {
         // Cập nhật số liệu tổng quan
         document.getElementById('total-consumption').innerHTML = sum + ' <span class="text-xs text-teal-200">kWh</span>';
         document.getElementById('est-cost').innerHTML = (sum * 2500).toLocaleString('vi-VN') + ' <span class="text-xs text-pink-200">VNĐ</span>';
+
+        // Gọi lại hàm render bảng dữ liệu để load data theo Filter Khách Hàng và Filter Ngày
+        renderLogs();
 
         btn.innerHTML = originalText;
         btn.disabled = false;

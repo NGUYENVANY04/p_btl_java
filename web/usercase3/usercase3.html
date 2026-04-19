@@ -190,6 +190,13 @@
                             class="fa-regular fa-calendar-days mr-2 text-teal-400"></i>Lịch sử tiêu thụ (D/M/Y)</h2>
 
                     <div class="flex flex-wrap items-center gap-2">
+                        <!-- Thêm bộ lọc Khách hàng (Update Admin View) -->
+                        <select class="modern-input text-sm rounded-lg px-3 py-1.5 cursor-pointer bg-indigo-900/50 text-indigo-200 border-indigo-500/50" id="filter-user">
+                            <option value="all">Tất cả Khách hàng</option>
+                            <option value="101">Nguyễn Văn A (Nhà 101)</option>
+                            <option value="102">Trần Thị B (Nhà 102)</option>
+                            <option value="103">Lê Văn C (Nhà 103)</option>
+                        </select>
                         <select class="modern-input text-sm rounded-lg px-3 py-1.5 cursor-pointer" id="filter-type">
                             <option value="day">Theo Ngày (D)</option>
                             <option value="month">Theo Tháng (M)</option>
@@ -241,6 +248,7 @@
                         <thead class="text-xs text-slate-400 uppercase bg-slate-800/50">
                             <tr>
                                 <th scope="col" class="px-4 py-3 rounded-tl-lg">Thời gian</th>
+                                <th scope="col" class="px-4 py-3 text-indigo-300">Khách hàng</th>
                                 <th scope="col" class="px-4 py-3">Điện áp (V)</th>
                                 <th scope="col" class="px-4 py-3">Dòng điện (A)</th>
                                 <th scope="col" class="px-4 py-3 rounded-tr-lg">Công suất (W)</th>
@@ -257,7 +265,7 @@
     </div>
 
     <!-- Nhúng file Javascript -->
-    <script src="usercase3.js?v=2"></script>
+    <script src="usercase3.js?v=3"></script>
 
     <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-3"></div>
