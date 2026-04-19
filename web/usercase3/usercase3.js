@@ -100,7 +100,15 @@ async function startRealtimeAPI() {
             const loadProgress = document.getElementById('load-progress');
             if (loadProgress) {
                 loadProgress.style.width = percent + '%';
-                if (percent > 66) loadProgress.className = 'h-1.5 rounded-full bg-red-500';
+                if (percent > 66) {
+                    loadProgress.className = 'h-1.5 rounded-full bg-red-500';
+                    // Kích hoạt Toast Cảnh Báo Quá Tải
+                    if (!window.hasAlertedSpike) {
+                        showToast('Cảnh báo quá tải thiết bị!', `Công suất hiện tại là <b class="text-white">${data.p.toFixed(1)}W</b>, vượt ngưỡng an toàn (800W). Giảm tải ngay!`, true);
+                        window.hasAlertedSpike = true;
+                        setTimeout(() => window.hasAlertedSpike = false, 10000); // Không spam liên tục trong 10s
+                    }
+                }
                 else if (percent > 40) loadProgress.className = 'h-1.5 rounded-full bg-yellow-400';
                 else loadProgress.className = 'h-1.5 rounded-full bg-green-400';
             }
