@@ -5,7 +5,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.HttpClientErrorException;
 
-import com.Iot.backend.service.quochoc;
 import com.Iot.backend.dto.DeviceDTO;
 import com.Iot.backend.dto.DeviceRequestDTO;
 import com.Iot.backend.service.DeviceService;
@@ -20,43 +19,12 @@ import java.util.Map;
 public class SupabaseController {
 
     @Autowired
-    private quochoc quochocService;
-    @Autowired
     private DeviceService deviceService;
     @Autowired
     private UserService userService;
     @Autowired
     private ducthinh ducthinhService;
 
-    // Lấy dữ liệu tổng quan theo năm
-    @GetMapping("/quochoc/energy/overview")
-    public ResponseEntity<?> getEnergyOverview() {
-        return ResponseEntity.ok(quochocService.getEnergyOverview());
-    }
-
-    // ================= QUOCHOC API =================
-    @GetMapping("/quochoc/energy/yearly")
-    public ResponseEntity<?> getYear(@RequestParam(required = false) Integer year) {
-        return ResponseEntity.ok(quochocService.getYearlyEnergy(year));
-    }
-
-    // Lấy dữ liệu tháng -> trả về các ngày
-    @GetMapping("/quochoc/energy/monthly")
-    public ResponseEntity<?> getMonth(@RequestParam(required = false) String month) {
-        return ResponseEntity.ok(quochocService.getMonthlyEnergy(month));
-    }
-
-    // Lấy dữ liệu ngày -> trả về các giờ
-    @GetMapping("/quochoc/data/day")
-    public ResponseEntity<?> getDay(@RequestParam String day) {
-        return ResponseEntity.ok(quochocService.getDataByDay(day));
-    }
-
-    // =========================
-    // DEVICE CRUD
-    // =========================
-
-    // CREATE
     @PostMapping("/devices")
     public DeviceDTO create(@RequestBody DeviceRequestDTO request) {
         return deviceService.createDevice(request);
@@ -142,29 +110,6 @@ public class SupabaseController {
                 "deviceId", deviceId,
                 "status", status.toUpperCase(),
                 "message", result));
-    }
-
-    @GetMapping("/quochoc/alerts")
-    public ResponseEntity<?> getAllAlert() {
-        return ResponseEntity.ok(quochocService.getAllAlerts());
-    }
-
-    // Lấy cảnh báo theo thiết bị
-    @GetMapping("/quochoc/alerts/device")
-    public ResponseEntity<?> getAlertByDevice(@RequestParam(required = false) Integer deviceId) {
-        return ResponseEntity.ok(quochocService.getAlertsByDevice(deviceId));
-    }
-
-    // Lấy các cảnh báo chưa đọc
-    @GetMapping("/quochoc/alerts/unread")
-    public ResponseEntity<?> getUnreadAlert() {
-        return ResponseEntity.ok(quochocService.getUnreadAlerts());
-    }
-
-    // Lấy cảnh báo theo ngày
-    @GetMapping("/quochoc/alerts/day")
-    public ResponseEntity<?> getAlertByDay(@RequestParam String day) {
-        return ResponseEntity.ok(quochocService.getAlertsByDay(day));
     }
 
 } // Các API khác của quochoc... (giữ nguyên như file cũ của bạn)
