@@ -131,6 +131,7 @@
 package com.Iot.backend.service;
 
 import org.eclipse.paho.client.mqttv3.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -140,38 +141,52 @@ import java.util.UUID;
 @Service
 public class ducthinh {
 
-    // === Cấu hình Supabase ===
-    private final String SUPABASE_URL = "https://znfxhbrkabxenuzrcogd.supabase.co/rest/v1/sensor_data";
-    private final String API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ0Mjk4NSwiZXhwIjoyMDkxMDE4OTg1fQ.qNtUEq0HebqEs6tHrWT6Ghj94-UOb5dshIWAvWB8r6Y";
+    @Value("${supabase.url}")
+    private String supabaseUrl;
 
-    // === Cấu hình MQTT ===
-    private final String MQTT_BROKER = "tcp://broker.hivemq.com:1883";
-    private final String CLIENT_ID = "Java_IoT_Full_Service_" + UUID.randomUUID().toString().substring(0, 5);
-    private final String DATA_TOPIC = "ptit/test/request";
-    private final String CONTROL_TOPIC = "ptit/device/control";
+    @Value("${supabase.key}")
+    private String apiKey;
 
+    @Value("${mqtt.broker}")
+    private String mqttBroker;
+
+    @Value("${mqtt.topic.data}")
+    private String dataTopic;
+
+    @Value("${mqtt.topic.control}")
+    private String controlTopic;
+
+    private final String clientId = "Java_IoT_Service_" + UUID.randomUUID().toString().substring(0, 8);
     private final RestTemplate restTemplate = new RestTemplate();
     private MqttClient mqttClient;
 
     @PostConstruct
     public void init() {
+        connectMqtt();
+    }
+
+    /**
+     * Khởi tạo kết nối tới MQTT Broker
+     */
+    private void connectMqtt() {
         try {
-            mqttClient = new MqttClient(MQTT_BROKER, CLIENT_ID);
+            mqttClient = new MqttClient(mqttBroker, clientId);
             MqttConnectOptions options = new MqttConnectOptions();
             options.setAutomaticReconnect(true);
             options.setCleanSession(true);
+            options.setConnectionTimeout(10);
 
             mqttClient.setCallback(new MqttCallback() {
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
                     String payload = new String(message.getPayload());
-                    System.out.println("📥 NHẬN DỮ LIỆU: " + payload);
-                    // Lưu vào DB để giao diện Web hiển thị thông tin
+                    System.out.println("📥 [MQTT] Nhận dữ liệu: " + payload);
                     saveToDatabase(payload);
                 }
 
                 @Override
                 public void connectionLost(Throwable cause) {
+                    System.err.println("⚠️ [MQTT] Mất kết nối: " + cause.getMessage());
                 }
 
                 @Override
@@ -180,41 +195,58 @@ public class ducthinh {
             });
 
             mqttClient.connect(options);
-            mqttClient.subscribe(DATA_TOPIC); // Lắng nghe để lấy dữ liệu lên Web
-            System.out.println("✅ HỆ THỐNG SẴN SÀNG: Lắng nghe & Điều khiển");
+            mqttClient.subscribe(dataTopic);
+            System.out.println("🚀 [MQTT] Đã kết nối & lắng nghe topic: " + dataTopic);
         } catch (MqttException e) {
-            System.err.println("❌ Lỗi MQTT: " + e.getMessage());
+            System.err.println("❌ [MQTT] Lỗi kết nối: " + e.getMessage());
         }
     }
 
-    // Ghi dữ liệu vào Supabase (Cho mục đích hiển thị trên Web)
+    /**
+     * Ghi dữ liệu cảm biến vào Supabase
+     */
     private void saveToDatabase(String jsonPayload) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("apikey", API_KEY);
-            headers.set("Authorization", "Bearer " + API_KEY);
+            headers.set("apikey", apiKey);
+            headers.set("Authorization", "Bearer " + apiKey);
 
-            // Không dùng ON CONFLICT để tránh lỗi 400 nếu bạn chưa chỉnh DB
-            // Dữ liệu sẽ được lưu thành các dòng mới (Logs)
             HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
-            restTemplate.postForEntity(SUPABASE_URL, entity, String.class);
-            System.out.println("✅ Đã lưu dữ liệu cảm biến vào Database.");
+            ResponseEntity<String> response = restTemplate.postForEntity(supabaseUrl, entity, String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("✅ [Supabase] Lưu dữ liệu thành công.");
+            }
         } catch (Exception e) {
-            System.err.println("❌ Lỗi lưu DB: " + e.getMessage());
+            System.err.println("❌ [Supabase] Lỗi lưu dữ liệu: " + e.getMessage());
         }
     }
 
-    // Gửi lệnh điều khiển qua MQTT
+    /**
+     * Gửi lệnh điều khiển thiết bị qua MQTT
+     */
     public String controlDevice(Integer deviceId, String status) {
         try {
-            if (mqttClient == null || !mqttClient.isConnected())
-                return "MQTT chưa kết nối!";
+            // Kiểm tra kết nối trước khi gửi
+            if (mqttClient == null || !mqttClient.isConnected()) {
+                connectMqtt();
+                if (!mqttClient.isConnected())
+                    return "Lỗi: MQTT không thể kết nối!";
+            }
+
+            // Định dạng payload JSON chuẩn
             String payload = String.format("{\"device_id\": %d, \"status\": \"%s\"}", deviceId, status.toUpperCase());
-            mqttClient.publish(CONTROL_TOPIC, new MqttMessage(payload.getBytes()));
-            return "Thành công: Gửi lệnh " + status + " tới thiết bị " + deviceId;
+            MqttMessage message = new MqttMessage(payload.getBytes());
+            message.setQos(1); // Đảm bảo tin nhắn đến được Broker
+
+            mqttClient.publish(controlTopic, message);
+
+            System.out.println("📤 [Control] Đã gửi lệnh tới thiết bị " + deviceId + ": " + status);
+            return "Thành công";
         } catch (MqttException e) {
-            return "❌ Lỗi: " + e.getMessage();
+            System.err.println("❌ [Control] Lỗi gửi MQTT: " + e.getMessage());
+            return "Lỗi gửi lệnh";
         }
     }
 }
