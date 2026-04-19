@@ -12,7 +12,7 @@
 // import org.springframework.web.client.RestTemplate;
 
 // @Service
-// public class xuandat {
+// public class vany {
 
 // private final RestTemplate restTemplate = new RestTemplate();
 // private final String URL =

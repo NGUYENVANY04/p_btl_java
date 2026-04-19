@@ -26,6 +26,7 @@ import com.example.demo.service.quochoc;
  * Mỗi service có thể triển khai GET/POST/PUT/DELETE riêng.
  */
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api")
 public class SupabaseController {
@@ -63,5 +64,4 @@ public class SupabaseController {
     public ResponseEntity<?> getDay(@RequestParam String day) {
         return ResponseEntity.ok(quochocService.getDataByDay(day));
     }
-
 }

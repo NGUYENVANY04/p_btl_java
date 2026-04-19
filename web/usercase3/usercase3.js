@@ -1,39 +1,47 @@
 // Cấu hình Biểu đồ bằng Chart.js
 document.addEventListener('DOMContentLoaded', function () {
     initChart();
-    
+
     if (CONFIG.USE_MOCK_DATA) {
         initSimulatedData(); // Chạy đồ họa ảo
     } else {
         // Sau này Backend Java viết xong API sẽ gọi dòng này
         startRealtimeAPI();
     }
-    
+
     renderLogs();
 });
 
 // ================= CẤU HÌNH KẾT NỐI API =================
 const CONFIG = {
-    USE_MOCK_DATA: true, // TODO: Chuyển thành false khi Backend Java đã sẵn sàng
-    API_BASE_URL: 'http://localhost:8080/api/v1/devices' 
+    USE_MOCK_DATA: true, 
+    API_BASE_URL: 'http://localhost:8080/api/quochoc'
 };
 
 async function startRealtimeAPI() {
-    // Lấy dữ liệu ID thiết bị từ giao diện (Drop down list)
-    // const deviceId = document.querySelector('select').value; 
-    const deviceId = 101; 
-    
     // Gọi API mỗi 3 giây thay vì random
     simulationInterval = setInterval(async () => {
         if (!isOnline) return;
         try {
-            // ĐÂY LÀ DÒNG GỌI XUỐNG JAVA (Spring Boot)
-            const response = await fetch(`${CONFIG.API_BASE_URL}/${deviceId}/real-time`);
+            // Lấy ngày từ ô Bộ Lọc trên màn hình (Mặc định 2026-04-17 hoặc ngày user chọn)
+            const today = document.getElementById('filter-date').value;
+            
+            // ĐÂY LÀ DÒNG GỌI XUỐNG JAVA API của nhánh quochoc
+            const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
             if (!response.ok) throw new Error("Lỗi mạng");
+
+            // Java trả về Mảng JSON chứa tất cả data trong ngày
+            const jsonArray = await response.json(); 
+            if (!jsonArray || jsonArray.length === 0) return;
             
-            // Java trả về chuỗi JSON, ví dụ: {"u": 224.5, "i": 2.45, "p": 550.0}
-            const data = await response.json(); 
-            
+            // Lấy phần tử mới nhất ở cuối mảng làm dòng Realtime
+            const latestData = jsonArray[jsonArray.length - 1];
+            const data = {
+                u: latestData.voltage || 0.0,
+                i: latestData.current || 0.0,
+                p: latestData.power || 0.0
+            };
+
             // 1. Đổ dữ liệu vào HTML
             document.getElementById('rt-voltage').innerText = data.u.toFixed(1);
             document.getElementById('rt-current').innerText = data.i.toFixed(2);
@@ -48,7 +56,7 @@ async function startRealtimeAPI() {
                 else if (percent > 40) loadProgress.className = 'h-1.5 rounded-full bg-yellow-400';
                 else loadProgress.className = 'h-1.5 rounded-full bg-green-400';
             }
-            
+
             // 3. Cập nhật nhãn "Vừa xong"
             const lastUpdate = document.getElementById('last-update');
             if (lastUpdate) {
@@ -134,7 +142,7 @@ function initSimulatedData() {
     startSimulation();
 
     // Sự kiện nút Ngắt kết nối (Test Bước 2)
-    document.getElementById('btn-toggle-connection')?.addEventListener('click', function() {
+    document.getElementById('btn-toggle-connection')?.addEventListener('click', function () {
         if (isOnline) {
             // Tắt kết nối
             clearInterval(simulationInterval);
@@ -144,11 +152,11 @@ function initSimulatedData() {
             this.classList.replace('hover:bg-slate-600', 'hover:bg-red-500/40');
             this.classList.replace('text-slate-300', 'text-red-400');
             this.classList.replace('border-slate-600', 'border-red-500/50');
-            
+
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
-            if(statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-500';
-            if(statusText) {
+            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-500';
+            if (statusText) {
                 statusText.className = 'text-xs font-semibold text-slate-400';
                 statusText.innerText = 'Offline';
             }
@@ -162,11 +170,11 @@ function initSimulatedData() {
             this.classList.replace('hover:bg-red-500/40', 'hover:bg-slate-600');
             this.classList.replace('text-red-400', 'text-slate-300');
             this.classList.replace('border-red-500/50', 'border-slate-600');
-            
+
             const statusDot = document.getElementById('status-dot');
             const statusText = document.getElementById('status-text');
-            if(statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-green-500 pulse-green';
-            if(statusText) {
+            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-green-500 pulse-green';
+            if (statusText) {
                 statusText.className = 'text-xs font-semibold text-green-400';
                 statusText.innerText = 'Online';
             }
@@ -186,7 +194,7 @@ function startSimulation() {
         if (Math.random() < 0.1) {
             i = parseFloat((i + 2.5).toFixed(2)); // Dòng điện vọt lên bất thường
         }
-        
+
         // Công suất (P = U * I)
         const p = parseFloat((u * i).toFixed(1));
 
@@ -201,7 +209,7 @@ function startSimulation() {
             loadProgress.style.width = percent + '%';
             if (percent > 66) { // ~800W
                 loadProgress.className = 'h-1.5 rounded-full bg-red-500';
-                
+
                 // Kích hoạt Toast Cảnh Báo Quá Tải
                 if (!window.hasAlertedSpike) {
                     showToast('Cảnh báo quá tải thiết bị!', `Công suất hiện tại là <b class="text-white">${p}W</b>, vượt ngưỡng an toàn (800W). Giảm tải ngay!`, true);
@@ -239,7 +247,7 @@ function showToast(title, message, isError = true) {
 
     // UI Toast
     toast.className = `glass-panel ${bgColor} border ${borderColor} p-4 rounded-xl shadow-2xl flex items-start gap-3 w-80 transform transition-all duration-300 translate-x-full opacity-0`;
-    
+
     toast.innerHTML = `
         <i class="fa-solid ${icon} ${iconColor} text-2xl mt-0.5"></i>
         <div class="flex-1">
@@ -267,30 +275,62 @@ function showToast(title, message, isError = true) {
 }
 
 // Hàm render dữ liệu bảng log tĩnh (thay vì code cứng trong html)
-function renderLogs() {
-    const logs = [
-        { time: "16:30:00 17/04/2026", u: 224.5, i: 2.45, p: 550.0 },
-        { time: "16:15:00 17/04/2026", u: 225.1, i: 2.50, p: 562.7 },
-        { time: "16:00:00 17/04/2026", u: 223.8, i: 1.10, p: 246.1 },
-        { time: "15:45:00 17/04/2026", u: 224.0, i: 1.05, p: 235.2 },
-        { time: "15:30:00 17/04/2026", u: 222.5, i: 0.95, p: 211.3 }
-    ];
+async function renderLogs() {
+    try {
+        const tbody = document.getElementById('log-table-body');
+        if (!tbody) return;
+        
+        if (CONFIG.USE_MOCK_DATA) {
+            // Chế độ giả lập vì API chưa có data thật
+            const logs = [
+                { time: "16:30:00 17/04/2026", u: 224.5, i: 2.45, p: 550.0 },
+                { time: "16:15:00 17/04/2026", u: 225.1, i: 2.50, p: 562.7 },
+                { time: "16:00:00 17/04/2026", u: 223.8, i: 1.10, p: 246.1 },
+                { time: "15:45:00 17/04/2026", u: 224.0, i: 1.05, p: 235.2 },
+                { time: "15:30:00 17/04/2026", u: 222.5, i: 0.95, p: 211.3 }
+            ];
+            tbody.innerHTML = '';
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-800/30 transition-colors';
+                tr.innerHTML = `
+                    <td class="px-4 py-3">${log.time}</td>
+                    <td class="px-4 py-3 text-blue-300">${log.u}</td>
+                    <td class="px-4 py-3 text-orange-300">${log.i}</td>
+                    <td class="px-4 py-3 text-yellow-300">${log.p}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            return;
+        }
 
-    const tbody = document.getElementById('log-table-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-    logs.forEach(log => {
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-800/30 transition-colors';
-        tr.innerHTML = `
-            <td class="px-4 py-3">${log.time}</td>
-            <td class="px-4 py-3 text-blue-300">${log.u}</td>
-            <td class="px-4 py-3 text-orange-300">${log.i}</td>
-            <td class="px-4 py-3 text-yellow-300">${log.p}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+        // Chế độ API thật
+        const today = document.getElementById('filter-date').value;
+        const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
+        if (!response.ok) return;
+        
+        const logsData = await response.json();
+        tbody.innerHTML = '';
+        
+        // Reverse để lấy dữ liệu mới nhất lên đầu, giới hạn hiển thị khoảng 15 dòng
+        // API quochoc trả về: {time, voltage, current, power, energy}
+        // mảng logsData lộn ngược lại
+        logsData.reverse().slice(0, 15).forEach(log => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-slate-800/30 transition-colors';
+            // Ghép time và ngày hôm nay
+            const displayTime = `${log.time} ${today.split('-').reverse().join('/')}`;
+            tr.innerHTML = `
+                <td class="px-4 py-3">${displayTime}</td>
+                <td class="px-4 py-3 text-blue-300">${log.voltage || 0.0}</td>
+                <td class="px-4 py-3 text-orange-300">${log.current || 0.0}</td>
+                <td class="px-4 py-3 text-yellow-300">${log.power || 0.0}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    } catch (e) {
+        console.error("Lỗi khi load Logs", e);
+    }
 }
 
 // Xử lý sự kiện click lọc dữ liệu
@@ -332,7 +372,7 @@ document.getElementById('btn-export')?.addEventListener('click', function () {
 
     // Chuyển HTML Table thành Workbook của SheetJS
     const wb = XLSX.utils.table_to_book(table, { sheet: "NhatKyTieuThu" });
-    
+
     // Tải file về máy (định dạng xlsx)
     XLSX.writeFile(wb, 'LichSu_TieuThuDien.xlsx');
 });
