@@ -10,11 +10,59 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     renderLogs();
+    initConnectionToggle();
 });
+
+function initConnectionToggle() {
+    document.getElementById('btn-toggle-connection')?.addEventListener('click', function () {
+        if (isOnline) {
+            // Tắt kết nối
+            clearInterval(simulationInterval);
+            isOnline = false;
+            this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Bật lại (Test)';
+            this.classList.replace('bg-slate-700', 'bg-red-500/20');
+            this.classList.replace('hover:bg-slate-600', 'hover:bg-red-500/40');
+            this.classList.replace('text-slate-300', 'text-red-400');
+            this.classList.replace('border-slate-600', 'border-red-500/50');
+
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-500';
+            if (statusText) {
+                statusText.className = 'text-xs font-semibold text-slate-400';
+                statusText.innerText = 'Offline';
+            }
+            document.getElementById('last-update').innerText = 'Mất kết nối server';
+            document.getElementById('last-update').style.color = '#ef4444'; // Đỏ
+        } else {
+            // Bật kết nối
+            isOnline = true;
+            this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Ngắt kết nối (Test)';
+            this.classList.replace('bg-red-500/20', 'bg-slate-700');
+            this.classList.replace('hover:bg-red-500/40', 'hover:bg-slate-600');
+            this.classList.replace('text-red-400', 'text-slate-300');
+            this.classList.replace('border-red-500/50', 'border-slate-600');
+
+            const statusDot = document.getElementById('status-dot');
+            const statusText = document.getElementById('status-text');
+            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-green-500 pulse-green';
+            if (statusText) {
+                statusText.className = 'text-xs font-semibold text-green-400';
+                statusText.innerText = 'Online';
+            }
+            
+            if (CONFIG.USE_MOCK_DATA) {
+                startSimulation();
+            } else {
+                startRealtimeAPI();
+            }
+        }
+    });
+}
 
 // ================= CẤU HÌNH KẾT NỐI API =================
 const CONFIG = {
-    USE_MOCK_DATA: true, 
+    USE_MOCK_DATA: false,
     API_BASE_URL: 'http://localhost:8080/api/quochoc'
 };
 
@@ -25,15 +73,15 @@ async function startRealtimeAPI() {
         try {
             // Lấy ngày từ ô Bộ Lọc trên màn hình (Mặc định 2026-04-17 hoặc ngày user chọn)
             const today = document.getElementById('filter-date').value;
-            
+
             // ĐÂY LÀ DÒNG GỌI XUỐNG JAVA API của nhánh quochoc
             const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
             if (!response.ok) throw new Error("Lỗi mạng");
 
             // Java trả về Mảng JSON chứa tất cả data trong ngày
-            const jsonArray = await response.json(); 
+            const jsonArray = await response.json();
             if (!jsonArray || jsonArray.length === 0) return;
-            
+
             // Lấy phần tử mới nhất ở cuối mảng làm dòng Realtime
             const latestData = jsonArray[jsonArray.length - 1];
             const data = {
@@ -140,47 +188,6 @@ function initChart() {
 
 function initSimulatedData() {
     startSimulation();
-
-    // Sự kiện nút Ngắt kết nối (Test Bước 2)
-    document.getElementById('btn-toggle-connection')?.addEventListener('click', function () {
-        if (isOnline) {
-            // Tắt kết nối
-            clearInterval(simulationInterval);
-            isOnline = false;
-            this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Bật lại (Test)';
-            this.classList.replace('bg-slate-700', 'bg-red-500/20');
-            this.classList.replace('hover:bg-slate-600', 'hover:bg-red-500/40');
-            this.classList.replace('text-slate-300', 'text-red-400');
-            this.classList.replace('border-slate-600', 'border-red-500/50');
-
-            const statusDot = document.getElementById('status-dot');
-            const statusText = document.getElementById('status-text');
-            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-slate-500';
-            if (statusText) {
-                statusText.className = 'text-xs font-semibold text-slate-400';
-                statusText.innerText = 'Offline';
-            }
-            document.getElementById('last-update').innerText = 'Mất kết nối server';
-            document.getElementById('last-update').style.color = '#ef4444'; // Đỏ
-        } else {
-            // Bật kết nối
-            isOnline = true;
-            this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Ngắt kết nối (Test)';
-            this.classList.replace('bg-red-500/20', 'bg-slate-700');
-            this.classList.replace('hover:bg-red-500/40', 'hover:bg-slate-600');
-            this.classList.replace('text-red-400', 'text-slate-300');
-            this.classList.replace('border-red-500/50', 'border-slate-600');
-
-            const statusDot = document.getElementById('status-dot');
-            const statusText = document.getElementById('status-text');
-            if (statusDot) statusDot.className = 'h-2.5 w-2.5 rounded-full bg-green-500 pulse-green';
-            if (statusText) {
-                statusText.className = 'text-xs font-semibold text-green-400';
-                statusText.innerText = 'Online';
-            }
-            startSimulation();
-        }
-    });
 }
 
 function startSimulation() {
@@ -279,7 +286,7 @@ async function renderLogs() {
     try {
         const tbody = document.getElementById('log-table-body');
         if (!tbody) return;
-        
+
         if (CONFIG.USE_MOCK_DATA) {
             // Chế độ giả lập vì API chưa có data thật
             const logs = [
@@ -290,7 +297,7 @@ async function renderLogs() {
                 { time: "15:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", u: 222.5, i: 0.95, p: 211.3 }
             ];
             tbody.innerHTML = '';
-            
+
             // Lấy id filter user hiện tại
             const filterUser = document.getElementById('filter-user').value;
             let displayLogs = logs;
@@ -320,13 +327,13 @@ async function renderLogs() {
 
         const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
         if (!response.ok) return;
-        
+
         const logsData = await response.json();
         tbody.innerHTML = '';
-        
+
         // Cắt bớt và lật ngược
         let displayLogsAPI = logsData.reverse().slice(0, 50);
-        
+
         // Giả sử API chưa trả về tên khách hàng, ta gán tên ảo để demo Admin View
         const demoNames = ["Nguyễn Văn A (Nhà 101)", "Trần Thị B (Nhà 102)", "Lê Văn C (Nhà 103)"];
         let counter = 0;
