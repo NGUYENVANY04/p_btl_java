@@ -220,7 +220,7 @@ public class ducthinh {
                     deviceId, command.toUpperCase());
 
             MqttMessage message = new MqttMessage(payload.getBytes());
-            message.setQos(1);
+            message.setQos(0);
 
             mqttClient.publish(controlTopic, message);
 

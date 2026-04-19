@@ -1,84 +1,35 @@
 <!DOCTYPE html>
-<!-- Khai báo tài liệu HTML5 -->
-
 <html lang="vi">
-<!-- Ngôn ngữ chính của trang là tiếng Việt -->
 
 <head>
     <meta charset="UTF-8">
-    <!-- Hỗ trợ hiển thị đầy đủ ký tự Unicode (tiếng Việt, icon, ...) -->
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Giúp giao diện responsive trên điện thoại và máy tính -->
-
     <title>IoT Dashboard - User Case 4</title>
-    <!-- Tiêu đề hiển thị trên tab trình duyệt -->
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Nhúng thư viện Supabase JS để kết nối database realtime (Postgres cloud) -->
 
-    <link rel="stylesheet" href="style.css">
-    <!-- Liên kết file CSS bên ngoài để thiết kế giao diện -->
+    <link rel="stylesheet" href="style4_fix.css">
 </head>
 
 <body>
-
-    <!-- =================== KHUNG CHÍNH CỦA WEBSITE =================== -->
     <div class="wrapper">
-
-        <!-- =================== HEADER =================== -->
         <header class="main-header">
+            <h2 style="color: #00e5ff;">🖥️ Giám sát & Điều khiển Realtime</h2>
 
-            <!-- Tiêu đề hệ thống dashboard -->
-            <h2 style="color: #00e5ff;">
-                🖥️ Giám sát & Điều khiển Realtime
-            </h2>
-
-            <!-- Khu vực chứa các nút điều khiển và trạng thái kết nối -->
             <div class="header-controls">
-
-                <!-- Input ẩn: dùng để lưu URL backend (Spring Boot / API) -->
-                <!--
                 <input type="hidden" id="api-backend-url" value="http://localhost:8080">
-                -->
-
-                <!-- Input ẩn: giới hạn số dòng dữ liệu hiển thị -->
-                <!--
                 <input type="hidden" id="row-limit" value="10">
-                -->
-
-                <!-- Nút refresh dữ liệu (đang bị comment - chưa dùng) -->
-                <!--
                 <button class="btn-refresh" onclick="refreshAll()">🔄 Làm mới danh sách</button>
-                -->
 
-                <!-- Hiển thị trạng thái kết nối realtime -->
-                <div id="conn-status" class="status-tag">
-                    🟡 Đang kết nối...
-                    <!-- Mặc định trạng thái là đang kết nối -->
-                </div>
-
+                <!-- Trạng thái -->
+                <div id="conn-status" class="status-tag">🟡 Đang kết nối...</div>
             </div>
         </header>
 
-        <!-- =================== KHU VỰC DASHBOARD CHÍNH =================== -->
         <div id="dashboard-container"></div>
-        <!-- Đây là nơi JavaScript (user4.js) sẽ render dữ liệu:
-             - bảng dữ liệu sensor
-             - biểu đồ
-             - thiết bị IoT
-             - realtime updates -->
-
     </div>
 
-    <!-- =================== JAVASCRIPT LOGIC =================== -->
-    <script src="user4.js"></script>
-    <!-- File JS chính xử lý:
-         - kết nối Supabase
-         - lấy dữ liệu realtime
-         - render dashboard
-         - điều khiển thiết bị IoT -->
-
+    <script src="user4_fix.js"></script>
 </body>
 
 </html>
