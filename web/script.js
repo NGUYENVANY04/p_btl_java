@@ -209,7 +209,7 @@ function changePage(url, btn) {
         homeContent.style.display = 'grid';
         contentFrame.style.display = 'none';
         pageTitle.textContent = 'Trang chủ';
-        pageSubtitle.textContent = 'Chào mừng bạn đến với IoT Dashboard';
+        pageSubtitle.textContent = 'Chào mừng bạn đến với Quản Lý Điện Năng';
 
         if (btn) btn.classList.add('active');
 
@@ -250,16 +250,16 @@ function updatePageTitle(url) {
         pageTitle.textContent = 'Đặt ngưỡng cảnh báo';
         pageSubtitle.textContent = 'Cấu hình các mức cảnh báo cho cảm biến';
     } else if (url.includes('usercase2')) {
-        pageTitle.textContent = 'Dữ liệu cảm biến';
+        pageTitle.textContent = 'Lịch sử cảnh báo';
         pageSubtitle.textContent = 'Xem và theo dõi dữ liệu từ các cảm biến';
     } else if (url.includes('usercase3')) {
-        pageTitle.textContent = 'Kết nối WiFi & MQTT';
+        pageTitle.textContent = 'Thống kê dữ liệu ';
         pageSubtitle.textContent = 'Cấu hình kết nối mạng và MQTT';
     } else if (url.includes('usercase4')) {
-        pageTitle.textContent = 'Thông báo & Logs';
+        pageTitle.textContent = 'Dữ liệu thực ';
         pageSubtitle.textContent = 'Xem các thông báo và nhật ký hệ thống';
     } else if (url.includes('budget_manager/budget.html')) {
-        pageTitle.textContent = 'Quản lý ngân sách điện';
+        pageTitle.textContent = 'Quản lý ngân sách';
         pageSubtitle.textContent = 'Theo dõi và quản lý chi phí điện năng';
     }
 }
@@ -497,7 +497,7 @@ function loadUserDashboard(container) {
         <!-- Welcome Card -->
         <div class="welcome-card">
             <h2> Chào mừng, ${currentUser.name}!</h2>
-            <p>Đây là bảng điều khiển cá nhân của bạn. Bạn có thể theo dõi dữ liệu cảm biến và quản lý ngân sách điện.</p>
+            <p>Đây là bảng điều khiển cá nhân của bạn. Bạn có thể theo dõi Lịch sử cảnh báo và Quản lý ngân sách.</p>
 
             <div class="stats">
                 <div class="stat-item">
@@ -585,7 +585,7 @@ function loadUserDashboard(container) {
         <div class="info-card">
             <h3> Truy cập nhanh</h3>
             <div class="quick-actions">
-                <button class="action-btn" onclick="changePage('usercase2/usercase2.html', this)">📊 Xem dữ liệu cảm biến</button>
+                <button class="action-btn" onclick="changePage('usercase2/usercase2.html', this)">📊 Xem Lịch sử cảnh báo</button>
                 <button class="action-btn" onclick="changePage('budget_manager/budget.html', this)">⚡ Quản lý ngân sách</button>
                 ${currentUser.permissions.includes('view_notifications') ?
             '<button class="action-btn" onclick="changePage(\'usercase4/usercase4.html\', this)">🔔 Thông báo</button>' : ''}

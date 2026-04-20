@@ -111,7 +111,7 @@ public class ducthinh {
             JSONObject json = new JSONObject(jsonPayload);
             int deviceId = json.getInt("device_id");
 
-            ensureDeviceExists(deviceId);
+            // ensureDeviceExists(deviceId);
 
             sendToSupabase(jsonPayload);
 
@@ -188,21 +188,24 @@ public class ducthinh {
 
         int maxRetry = 5;
         int delay = 1000;
-        System.out.println("📤 Payload gửi Supabase: " + jsonPayload);
+
+        String url = supabaseUrl + "/sensor_data";
+
         for (int i = 0; i < maxRetry; i++) {
             try {
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("apikey", apiKey);
                 headers.set("Authorization", "Bearer " + apiKey);
+                headers.set("Prefer", "return=representation");
 
                 HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
 
                 ResponseEntity<String> response = restTemplate.postForEntity(
-                        supabaseUrl, entity, String.class);
+                        url, entity, String.class);
 
                 if (response.getStatusCode().is2xxSuccessful()) {
-                    System.out.println("✅ Insert OK at: " + System.currentTimeMillis());
+                    System.out.println("✅ Insert sensor_data OK");
                     return;
                 }
 
@@ -218,6 +221,6 @@ public class ducthinh {
             delay *= 2;
         }
 
-        System.err.println("💥 Failed after retry!");
+        System.err.println("💥 Insert sensor_data FAILED after retry!");
     }
 }
