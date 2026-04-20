@@ -188,7 +188,7 @@ public class ducthinh {
 
         int maxRetry = 5;
         int delay = 1000;
-
+        System.out.println("📤 Payload gửi Supabase: " + jsonPayload);
         for (int i = 0; i < maxRetry; i++) {
             try {
                 HttpHeaders headers = new HttpHeaders();

@@ -202,21 +202,28 @@ window.controlDevice = async function (id, status) {
 // ================== REALTIME (FIXED) ==================
 function startRealtime() {
 
-    if (realtimeChannel) {
-        supa.removeChannel(realtimeChannel);
-    }
+    // Tránh subscribe nhiều lần
+    if (window.realtimeStarted) return;
+    window.realtimeStarted = true;
 
-    realtimeChannel = supa.channel("iot-public-channel")
-        .on(
-            "postgres_changes",
-            {
-                event: "INSERT",
-                schema: "public",
-                table: "sensor_data"
-            },
+    supa.channel('iot-public-channel')
+        .on('postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'sensor_data' },
             (payload) => {
-                console.log("📡 Realtime:", payload.new);
-                updateTable(payload.new.device_id, payload.new, true);
+
+                const d = payload.new;
+                console.log("📡 Realtime:", d);
+
+                const tbody = document.getElementById(`tb-${d.device_id}`);
+
+                // ✅ Nếu chưa có bảng → bỏ qua (tránh lỗi)
+                if (!tbody) {
+                    console.warn("⚠️ Device chưa render:", d.device_id);
+                    return;
+                }
+
+                // ✅ HIỂN THỊ NGAY
+                updateTable(d.device_id, d, true);
             }
         )
         .subscribe((status) => {
