@@ -38,7 +38,10 @@ public class WebSecurityConfig {
 
                 // 5. Tắt các trình đăng nhập mặc định của Spring
                 .formLogin(AbstractHttpConfigurer::disable)
-                .httpBasic(AbstractHttpConfigurer::disable);
+                .httpBasic(AbstractHttpConfigurer::disable)
+
+                // 6. Cho phép IFrame hiển thị trang con (cùng Origin)
+                .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()));
 
         return http.build();
     }

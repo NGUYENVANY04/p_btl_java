@@ -13,6 +13,15 @@ import com.Iot.backend.service.DeviceService;
 import com.Iot.backend.service.UserService;
 import com.Iot.backend.service.ducthinh;
 import com.Iot.backend.service.daocuong;
+import com.Iot.backend.service.xuandat;
+
+import com.Iot.backend.dto.AlertResponse;
+import com.Iot.backend.dto.DeviceResponse;
+import com.Iot.backend.dto.MonitorHistoryResponse;
+
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -28,6 +37,8 @@ public class SupabaseController {
     private ducthinh ducthinhService;
     @Autowired
     private daocuong daocuongService;
+    @Autowired
+    private xuandat xuanDatService;
 
     @PostMapping("/devices")
     public DeviceDTO create(@RequestBody DeviceRequestDTO request) {
@@ -114,10 +125,61 @@ public class SupabaseController {
     }
 
     @PutMapping("/device_limits/{id}")
-
     public ResponseEntity<?> createLimitDevice(
             @PathVariable Long id,
             @RequestBody Map<String, Object> device) {
         return ResponseEntity.ok(deviceService.createLimitDevice(id, device));
+    }
+
+    // ================= XUANDAT API (Usecase 3) =================
+
+    @GetMapping("/xuandat/users")
+    public ResponseEntity<?> getXuandatUsers(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole) {
+        return ResponseEntity.ok(xuanDatService.getUsers(requesterUserId, requesterRole));
+    }
+
+    @GetMapping("/xuandat/devices")
+    public ResponseEntity<List<DeviceResponse>> getXuandatDevices(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId) {
+        return ResponseEntity.ok(xuanDatService.getDevices(requesterUserId, requesterRole, targetUserId));
+    }
+
+    @GetMapping("/xuandat/history")
+    public ResponseEntity<MonitorHistoryResponse> getXuandatHistory(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String bucket) {
+        return ResponseEntity.ok(xuanDatService.getHistory(requesterUserId, requesterRole, targetUserId, deviceId, from, to, bucket));
+    }
+
+    @GetMapping("/xuandat/alerts")
+    public ResponseEntity<List<AlertResponse>> getXuandatAlerts(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+        return ResponseEntity.ok(xuanDatService.getAlerts(requesterUserId, requesterRole, targetUserId, deviceId, from, to));
+    }
+
+    @GetMapping("/xuandat/export/excel")
+    public ResponseEntity<byte[]> exportXuandatExcel(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
+            @RequestParam(required = false) Integer deviceId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
+            @RequestParam(required = false) String bucket) {
+        return xuanDatService.exportExcel(requesterUserId, requesterRole, targetUserId, deviceId, from, to, bucket);
     }
 }

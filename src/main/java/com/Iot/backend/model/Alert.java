@@ -1,5 +1,7 @@
 package com.Iot.backend.model;
 
+import java.time.LocalDateTime;
+
 public class Alert {
 
     private Long id; // ✅ thêm dòng này
@@ -7,6 +9,7 @@ public class Alert {
     private Integer device_id;
     private String type;
     private String message;
+    private LocalDateTime created_at;
     private Boolean is_read;
 
     public Alert() {
@@ -55,5 +58,14 @@ public class Alert {
 
     public void setIs_read(Boolean is_read) {
         this.is_read = is_read;
+    }
+
+    // ===== created_at =====
+    public LocalDateTime getCreated_at() {
+        return created_at;
+    }
+
+    public void setCreated_at(LocalDateTime created_at) {
+        this.created_at = created_at;
     }
 }

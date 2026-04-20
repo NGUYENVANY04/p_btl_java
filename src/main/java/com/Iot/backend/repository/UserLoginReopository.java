@@ -15,7 +15,7 @@ public class UserLoginReopository {
     private final RestTemplate restTemplate;
 
     private final String URL = "https://znfxhbrkabxenuzrcogd.supabase.co/rest/v1";
-    private final String API_KEY = "sb_secret_NXFJy_AuCYhqJmmJadDKNA_I7N91qFu";
+    private final String API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ0Mjk4NSwiZXhwIjoyMDkxMDE4OTg1fQ.qNtUEq0HebqEs6tHrWT6Ghj94-UOb5dshIWAvWB8r6Y";
 
     public UserLoginReopository(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;

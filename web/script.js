@@ -265,25 +265,24 @@ function updatePageTitle(url) {
 }
 
 function handleLogout() {
-    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
-        currentUser = null;
+    currentUser = null;
+    sessionStorage.removeItem("currentUser");
 
-        // Destroy charts
-        Object.values(charts).forEach(chart => {
-            if (chart) chart.destroy();
-        });
-        charts = {};
+    // Destroy charts
+    Object.values(charts).forEach(chart => {
+        if (chart) chart.destroy();
+    });
+    charts = {};
 
-        // Show auth modal
-        const mainApp = document.getElementById('main-app');
-        mainApp.classList.add('hidden');
+    // Show auth modal
+    const mainApp = document.getElementById('main-app');
+    mainApp.classList.add('hidden');
 
-        const authModal = document.getElementById('auth-modal');
-        authModal.classList.remove('hidden');
+    const authModal = document.getElementById('auth-modal');
+    authModal.classList.remove('hidden');
 
-        // Reset form
-        document.getElementById('login-form').reset();
-    }
+    // Reset form
+    document.getElementById('login-form').reset();
 }
 
 // ==================== Home Content ====================
