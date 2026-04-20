@@ -67,16 +67,16 @@ function renderOffline(data) {
   }
 
   const rows = list
-    .sort((a, b) => (Number(b.minutes_since_last_seen) || 0) - (Number(a.minutes_since_last_seen) || 0))
+    .sort((a, b) => (Number(b.seconds_since_last_seen) || 0) - (Number(a.seconds_since_last_seen) || 0))
     .map((x) => {
       const deviceId = x.device_id ?? "--";
       const lastSeen = x.last_seen ?? "--";
-      const mins = x.minutes_since_last_seen ?? "--";
+      const secs = x.seconds_since_last_seen ?? "--";
       return `
         <tr class="hover:bg-white/5">
           <td class="px-4 py-3 font-semibold text-slate-100">${deviceId}</td>
           <td class="px-4 py-3 text-slate-300">${String(lastSeen)}</td>
-          <td class="px-4 py-3 text-rose-200 font-semibold">${String(mins)}</td>
+          <td class="px-4 py-3 text-rose-200 font-semibold">${String(secs)}s</td>
         </tr>
       `;
     })
@@ -272,7 +272,7 @@ function bindEvents() {
     setupAutoRefresh();
   });
 
-  ["api-base", "offline-minutes", "alerts-limit", "refresh-seconds"].forEach((id) => {
+  ["api-base", "offline-seconds", "alerts-limit", "refresh-seconds"].forEach((id) => {
     $(id)?.addEventListener("change", () => setupAutoRefresh());
   });
 }

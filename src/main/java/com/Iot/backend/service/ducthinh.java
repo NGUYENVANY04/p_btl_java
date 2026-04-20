@@ -12,6 +12,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 
 @Service
 public class ducthinh {
@@ -37,6 +39,10 @@ public class ducthinh {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private MqttClient mqttClient;
+
+    @Autowired
+    @Lazy
+    private daocuong daocuongService;
 
     // ================= QUEUE =================
     private final ConcurrentLinkedQueue<String> queue = new ConcurrentLinkedQueue<>();
@@ -110,9 +116,13 @@ public class ducthinh {
         try {
             JSONObject json = new JSONObject(jsonPayload);
             int deviceId = json.getInt("device_id");
+            float power = (float) json.getDouble("power");
+            float current = (float) json.getDouble("current");
 
-            // ensureDeviceExists(deviceId);
+            // 1. Kiểm tra ngưỡng thời gian thực và tự động ngắt nếu cần
+            daocuongService.checkRealtimeThreshold(deviceId, power, current);
 
+            // 2. Lưu dữ liệu vào Supabase
             sendToSupabase(jsonPayload);
 
         } catch (Exception e) {

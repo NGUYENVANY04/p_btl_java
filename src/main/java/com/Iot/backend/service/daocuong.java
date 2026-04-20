@@ -9,6 +9,7 @@ import com.Iot.backend.model.DeviceLimit;
 import com.Iot.backend.model.SensorData;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -48,7 +49,8 @@ public class daocuong {
     private final List<String> warnings = new ArrayList<>();
 
     @Autowired
-    private EmailService emailService;
+    @Lazy
+    private ducthinh ducthinhService;
 
     private HttpHeaders supabaseHeaders() {
         HttpHeaders headers = new HttpHeaders();
@@ -176,22 +178,73 @@ public class daocuong {
         payload.put("type", type);
         payload.put("message", message);
         payload.put("is_read", false);
-        Map<String, Object> created = postReturningFirst("/" + tableAlerts, payload);
+        return postReturningFirst("/" + tableAlerts, payload);
+    }
 
-        try {
-            String subject = "IoT Alert: " + type;
-            String body = "Thiết bị " + deviceId + " tạo alert: " + message;
-            String userEmail = getUserEmail(userId);
-            if (userEmail != null && !userEmail.isBlank()) {
-                emailService.sendAlertEmail(userEmail, subject, body);
+    private Integer getUserIdByDeviceId(Integer deviceId) {
+        if (deviceId == null) return null;
+        String q = String.format("/%s?select=user_id&device_id=eq.%d&limit=1", tableUserDevices, deviceId);
+        List<Map<String, Object>> rows = getList(q);
+        if (rows.isEmpty()) return null;
+        return toInt(rows.get(0).get("user_id"));
+    }
+
+    /**
+     * Kiểm tra ngưỡng thời gian thực cho một thiết bị khi có dữ liệu mới từ MQTT.
+     */
+    public void checkRealtimeThreshold(int deviceId, float power, float current) {
+        // 1. Lấy ngưỡng của thiết bị
+        String qLimit = String.format("/%s?select=max_power,max_current&device_id=eq.%d&limit=1", tableDeviceLimit, deviceId);
+        List<Map<String, Object>> limitRows = getList(qLimit);
+        if (limitRows.isEmpty()) return;
+
+        Map<String, Object> lim = limitRows.get(0);
+        Float maxPower = toFloat(lim.get("max_power"));
+        Float maxCurrent = toFloat(lim.get("max_current"));
+
+        boolean powerOver = (maxPower != null && maxPower > 0 && power > maxPower);
+        boolean currentOver = (maxCurrent != null && maxCurrent > 0 && current > maxCurrent);
+
+        if (powerOver || currentOver) {
+            Integer userId = getUserIdByDeviceId(deviceId);
+            String message = "";
+            String type = "";
+
+            if (powerOver) {
+                type = "POWER_EXCEEDED";
+                message = "Vượt ngưỡng công suất: " + power + " > " + maxPower;
             } else {
-                emailService.sendAlertEmail(subject, body);
-                System.err.println("Warning: user email not found for userId=" + userId + ", sent fallback email.");
+                type = "CURRENT_EXCEEDED";
+                message = "Vượt ngưỡng dòng điện: " + current + " > " + maxCurrent;
             }
-        } catch (Exception e) {
-            System.err.println("Email notification failed: " + e.getMessage());
+
+            // 2. Tạo alert
+            createAlert(deviceId, userId, type, message);
+
+            // 3. Ngắt thiết bị ngay lập tức
+            ducthinhService.controlDevice(deviceId, "OFF");
+
+            // 4. Cập nhật trạng thái thiết bị trong DB về false (OFF)
+            updateDeviceStatusInDb(deviceId, false);
+            
+            System.out.println("🚨 REALTIME ALERT: Device " + deviceId + " exceeded threshold! Sent OFF command.");
         }
-        return created;
+    }
+
+    private void updateDeviceStatusInDb(int deviceId, boolean status) {
+        try {
+            String url = "/devices?id=eq." + deviceId;
+            Map<String, Object> body = new HashMap<>();
+            body.put("status", status);
+
+            HttpHeaders headers = supabaseHeaders();
+            headers.set("Prefer", "return=minimal");
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+            
+            restTemplate.exchange(URL + url, HttpMethod.PATCH, entity, String.class);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to update device status in DB: " + e.getMessage());
+        }
     }
 
     private List<Map<String, Object>> getListWithFallback(String currentTable, String[] fallbacks, String selectQuery) {
@@ -287,6 +340,7 @@ public class daocuong {
                 item.setDevice_id(deviceId);
                 item.setLast_seen(lastSeen);
                 item.setSeconds_since_last_seen(secondsSinceLastSeen);
+                item.setMinutes_since_last_seen(secondsSinceLastSeen >= 0 ? secondsSinceLastSeen / 60 : -1);
                 offline.add(item);
 
                 if (!hasUnreadAlert(deviceId, "OFFLINE")) {
@@ -362,6 +416,9 @@ public class daocuong {
             boolean powerOver = (maxPower != null && power != null && power > maxPower);
             boolean currentOver = (maxCurrent != null && current != null && current > maxCurrent);
             if (!powerOver && !currentOver) continue;
+
+            // Tự động ngắt thiết bị khi vượt ngưỡng
+            ducthinhService.controlDevice(deviceId, "OFF");
 
             OverLimitDeviceDto item = new OverLimitDeviceDto();
             item.setDevice_id(deviceId);
