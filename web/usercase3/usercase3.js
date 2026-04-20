@@ -50,7 +50,7 @@ function initConnectionToggle() {
                 statusText.className = 'text-xs font-semibold text-green-400';
                 statusText.innerText = 'Online';
             }
-            
+
             if (CONFIG.USE_MOCK_DATA) {
                 startSimulation();
             } else {
