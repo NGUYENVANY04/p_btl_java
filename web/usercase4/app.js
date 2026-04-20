@@ -10,7 +10,7 @@ const dashboard = document.getElementById("device-dashboard");
 document.addEventListener("DOMContentLoaded", () => {
     console.log("🚀 Hệ thống IoT đang khởi động...");
 
-    refreshAll();
+    // refreshAll();
     startRealtime();
 });
 async function initDashboard() {
