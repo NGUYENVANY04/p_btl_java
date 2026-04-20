@@ -1,13 +1,13 @@
 package com.Iot.backend.model;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class Device {
     private Integer id;
     private String name;
     private String location;
     private Boolean status;
-    private LocalDateTime created_at;
+    private OffsetDateTime created_at;
 
     public Device() {
     }
@@ -44,11 +44,11 @@ public class Device {
         this.status = status;
     }
 
-    public LocalDateTime getCreated_at() {
+    public OffsetDateTime getCreated_at() {
         return created_at;
     }
 
-    public void setCreated_at(LocalDateTime created_at) {
+    public void setCreated_at(OffsetDateTime created_at) {
         this.created_at = created_at;
     }
 }

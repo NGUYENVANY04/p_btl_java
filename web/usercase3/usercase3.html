@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usecase 3 - Theo dõi dữ liệu thiết bị</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.18);
+            border-radius: 999px;
+        }
+
+        body {
+            color-scheme: dark;
+        }
+
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.68);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 20px;
+            box-shadow: 0 24px 60px rgba(2, 6, 23, 0.28);
+            backdrop-filter: blur(16px);
+        }
+
+        .modern-input {
+            background: rgba(15, 23, 42, 0.78);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            color: #e2e8f0;
+        }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-6 text-slate-200" style="background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(251, 113, 133, 0.12), transparent 25%),
+    linear-gradient(145deg, #0f172a 0%, #162641 100%);">
+
+    <div class="space-y-6">
+        <section class="glass-panel p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+                <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.3em] mb-2">Usecase 3</p>
+                <h1 class="text-3xl font-bold text-white">Theo dõi dữ liệu thiết bị theo thời gian</h1>
+                <p class="text-slate-400 mt-3 max-w-3xl">Xem lại dữ liệu đo, phát hiện bản ghi vượt ngưỡng công suất hoặc dòng điện, và xuất Excel trực tiếp từ bộ lọc đang xem.</p>
+            </div>
+            <div class="glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 self-start">
+                <span class="h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_0_8px_rgba(74,222,128,0.12)]"></span>
+                <span class="text-sm font-medium">API trạng thái: <span id="system-status" class="text-emerald-300">Đang kết nối</span></span>
+            </div>
+        </section>
+
+        <section class="glass-panel p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                <label class="space-y-2">
+                    <span class="text-sm text-slate-400">Thiết bị</span>
+                    <select id="device-select" class="modern-input w-full rounded-xl p-3"></select>
+                </label>
+                <label class="space-y-2">
+                    <span class="text-sm text-slate-400">Từ thời điểm</span>
+                    <input id="from-input" type="datetime-local" class="modern-input w-full rounded-xl p-3">
+                </label>
+                <label class="space-y-2">
+                    <span class="text-sm text-slate-400">Đến thời điểm</span>
+                    <input id="to-input" type="datetime-local" class="modern-input w-full rounded-xl p-3">
+                </label>
+                <label class="space-y-2">
+                    <span class="text-sm text-slate-400">Mức gom dữ liệu</span>
+                    <select id="bucket-select" class="modern-input w-full rounded-xl p-3">
+                        <option value="raw">Raw</option>
+                        <option value="hour">Theo giờ</option>
+                        <option value="day">Theo ngày</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 mt-5">
+                <button id="btn-filter" class="bg-teal-500 hover:bg-teal-600 text-white font-semibold px-5 py-3 rounded-xl transition-colors">
+                    <i class="fa-solid fa-filter mr-2"></i>Tải dữ liệu
+                </button>
+                <button id="btn-export" class="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-3 rounded-xl transition-colors">
+                    <i class="fa-solid fa-file-excel mr-2"></i>Xuất Excel
+                </button>
+                <span id="feedback" class="text-sm text-slate-400">Chọn bộ lọc rồi bấm tải dữ liệu.</span>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            <article class="glass-panel p-5">
+                <p class="text-sm text-slate-400 mb-2">Bản ghi</p>
+                <h2 id="total-rows" class="text-3xl font-bold text-white">0</h2>
+            </article>
+            <article class="glass-panel p-5">
+                <p class="text-sm text-slate-400 mb-2">Tổng energy</p>
+                <h2 id="total-energy" class="text-3xl font-bold text-teal-300">0.00</h2>
+            </article>
+            <article class="glass-panel p-5">
+                <p class="text-sm text-slate-400 mb-2">Cảnh báo trong kỳ</p>
+                <h2 id="alert-count" class="text-3xl font-bold text-rose-300">0</h2>
+            </article>
+            <article class="glass-panel p-5">
+                <p class="text-sm text-slate-400 mb-2">Lần đo mới nhất</p>
+                <h2 id="latest-timestamp" class="text-lg font-semibold text-white leading-7">--</h2>
+            </article>
+        </section>
+
+        <section class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div class="xl:col-span-2 space-y-6">
+                <article class="glass-panel p-6">
+                    <div class="flex justify-between items-center gap-4 mb-5">
+                        <div>
+                            <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.25em] mb-2">Biểu đồ</p>
+                            <h2 class="text-xl font-semibold text-white">Dữ liệu công suất và dòng điện</h2>
+                        </div>
+                        <span id="chart-device-name" class="px-4 py-2 rounded-full bg-slate-900/70 border border-slate-700 text-sm text-slate-200">--</span>
+                    </div>
+                    <div class="h-80">
+                        <canvas id="consumptionChart"></canvas>
+                    </div>
+                </article>
+
+                <article class="glass-panel p-6">
+                    <div class="flex justify-between items-center gap-4 mb-5">
+                        <div>
+                            <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.25em] mb-2">Bảng dữ liệu</p>
+                            <h2 class="text-xl font-semibold text-white">Nhật ký đo lường chi tiết</h2>
+                        </div>
+                        <span id="table-bucket" class="px-4 py-2 rounded-full bg-slate-900/70 border border-slate-700 text-sm text-slate-200">raw</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="text-xs uppercase tracking-wide text-slate-400 bg-slate-900/40">
+                                <tr>
+                                    <th class="px-4 py-3 rounded-tl-xl">Thời gian</th>
+                                    <th class="px-4 py-3">Thiết bị</th>
+                                    <th class="px-4 py-3">Điện áp (V)</th>
+                                    <th class="px-4 py-3">Dòng điện (A)</th>
+                                    <th class="px-4 py-3">Công suất (W)</th>
+                                    <th class="px-4 py-3">Energy</th>
+                                    <th class="px-4 py-3 rounded-tr-xl">Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="log-table-body" class="divide-y divide-slate-800/70"></tbody>
+                        </table>
+                    </div>
+                </article>
+            </div>
+
+            <div class="space-y-6">
+                <article class="glass-panel p-6">
+                    <div class="flex justify-between items-center gap-3 mb-4">
+                        <div>
+                            <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.25em] mb-2">Tức thời</p>
+                            <h2 class="text-xl font-semibold text-white">Bản ghi gần nhất</h2>
+                        </div>
+                        <span id="status-chip" class="px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-300 text-sm border border-emerald-500/20">Ổn định</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="rounded-2xl bg-slate-900/50 border border-slate-800 p-4">
+                            <p class="text-xs uppercase tracking-widest text-slate-400 mb-2">Điện áp</p>
+                            <h3 class="text-3xl font-bold text-blue-300"><span id="rt-voltage">0.00</span> <span class="text-lg">V</span></h3>
+                        </div>
+                        <div class="rounded-2xl bg-slate-900/50 border border-slate-800 p-4">
+                            <p class="text-xs uppercase tracking-widest text-slate-400 mb-2">Dòng điện</p>
+                            <h3 class="text-3xl font-bold text-orange-300"><span id="rt-current">0.00</span> <span class="text-lg">A</span></h3>
+                        </div>
+                        <div class="col-span-2 rounded-2xl bg-slate-900/50 border border-slate-800 p-4">
+                            <p class="text-xs uppercase tracking-widest text-slate-400 mb-2">Công suất</p>
+                            <h3 class="text-4xl font-bold text-yellow-300"><span id="rt-power">0.00</span> <span class="text-lg">W</span></h3>
+                            <div class="mt-4 h-2 rounded-full bg-slate-800 overflow-hidden">
+                                <div id="load-progress" class="h-full rounded-full bg-emerald-400" style="width: 0%;"></div>
+                            </div>
+                            <p id="last-update" class="text-xs text-slate-400 mt-3">Chưa có dữ liệu.</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="glass-panel p-6">
+                    <div class="flex justify-between items-center gap-3 mb-4">
+                        <div>
+                            <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.25em] mb-2">Cảnh báo</p>
+                            <h2 class="text-xl font-semibold text-white">Vượt ngưỡng đã cài</h2>
+                        </div>
+                        <span id="breach-badge" class="px-4 py-2 rounded-full bg-rose-500/10 text-rose-300 text-sm border border-rose-500/20">0 cảnh báo</span>
+                    </div>
+
+                    <div id="latest-alert" class="rounded-2xl border border-rose-500/15 bg-rose-500/8 p-4 mb-4">
+                        <h3 class="font-semibold text-white mb-2">Chưa có cảnh báo</h3>
+                        <p class="text-sm text-slate-400 leading-6">Dữ liệu sẽ được đối chiếu với device_limits khi tải lịch sử thiết bị.</p>
+                    </div>
+
+                    <div id="alerts-list" class="space-y-3 max-h-80 overflow-auto"></div>
+                </article>
+            </div>
+        </section>
+    </div>
+
+    <script src="usercase3.js"></script>
+</body>
+</html>

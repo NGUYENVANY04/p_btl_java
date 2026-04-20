@@ -1,18 +1,21 @@
 package com.Iot.backend.model;
 
+import com.Iot.backend.util.SupabaseTimestampParser;
+
+import java.time.OffsetDateTime;
+
 public class Alert {
 
-    private Long id; // ✅ thêm dòng này
-
+    private Long id;
     private Integer device_id;
     private String type;
     private String message;
+    private OffsetDateTime created_at;
     private Boolean is_read;
 
     public Alert() {
     }
 
-    // ===== ID =====
     public Long getId() {
         return id;
     }
@@ -21,7 +24,6 @@ public class Alert {
         this.id = id;
     }
 
-    // ===== device_id =====
     public Integer getDevice_id() {
         return device_id;
     }
@@ -30,7 +32,6 @@ public class Alert {
         this.device_id = device_id;
     }
 
-    // ===== type =====
     public String getType() {
         return type;
     }
@@ -39,7 +40,6 @@ public class Alert {
         this.type = type;
     }
 
-    // ===== message =====
     public String getMessage() {
         return message;
     }
@@ -48,7 +48,18 @@ public class Alert {
         this.message = message;
     }
 
-    // ===== is_read =====
+    public OffsetDateTime getCreated_at() {
+        return created_at;
+    }
+
+    public void setCreated_at(OffsetDateTime created_at) {
+        this.created_at = created_at;
+    }
+
+    public void setCreated_at(String created_at) {
+        this.created_at = SupabaseTimestampParser.parse(created_at);
+    }
+
     public Boolean getIs_read() {
         return is_read;
     }

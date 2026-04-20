@@ -20,7 +20,7 @@ public class ducthinh {
     @Value("${supabase.url}")
     private String supabaseUrl;
 
-    @Value("${supabase.key}")
+    @Value("${supabase.key:${supabase.api-key:}}")
     private String apiKey;
 
     @Value("${mqtt.broker}")
@@ -123,8 +123,7 @@ public class ducthinh {
     // ================= AUTO CREATE DEVICE =================
     private void ensureDeviceExists(int deviceId) {
         try {
-            String deviceUrl = supabaseUrl.replace("sensor_data", "devices")
-                    + "?id=eq." + deviceId;
+            String deviceUrl = tableUrl("devices") + "?id=eq." + deviceId;
 
             HttpHeaders headersGet = new HttpHeaders();
             headersGet.set("apikey", apiKey);
@@ -149,7 +148,7 @@ public class ducthinh {
                 HttpEntity<String> entityPost = new HttpEntity<>(newDevice, headersPost);
 
                 restTemplate.postForEntity(
-                        supabaseUrl.replace("sensor_data", "devices"),
+                        tableUrl("devices"),
                         entityPost,
                         String.class);
 
@@ -199,7 +198,7 @@ public class ducthinh {
                 HttpEntity<String> entity = new HttpEntity<>(jsonPayload, headers);
 
                 ResponseEntity<String> response = restTemplate.postForEntity(
-                        supabaseUrl, entity, String.class);
+                        tableUrl("sensor_data"), entity, String.class);
 
                 if (response.getStatusCode().is2xxSuccessful()) {
                     System.out.println("✅ Insert OK at: " + System.currentTimeMillis());
@@ -219,5 +218,15 @@ public class ducthinh {
         }
 
         System.err.println("💥 Failed after retry!");
+    }
+
+    private String tableUrl(String table) {
+        if (supabaseUrl.endsWith("/" + table)) {
+            return supabaseUrl;
+        }
+        if (supabaseUrl.endsWith("/sensor_data")) {
+            return supabaseUrl.substring(0, supabaseUrl.length() - "/sensor_data".length()) + "/" + table;
+        }
+        return supabaseUrl + "/" + table;
     }
 }
