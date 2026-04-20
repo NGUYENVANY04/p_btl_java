@@ -136,34 +136,53 @@ public class SupabaseController {
         return ResponseEntity.ok(quochocService.getDataByDay(day, null));
     }
 
+    @GetMapping("/xuandat/users")
+    public ResponseEntity<?> getXuandatUsers(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole) {
+        return ResponseEntity.ok(xuanDatService.getUsers(requesterUserId, requesterRole));
+    }
+
     @GetMapping("/xuandat/devices")
-    public ResponseEntity<List<DeviceResponse>> getXuandatDevices() {
-        return ResponseEntity.ok(xuanDatService.getDevices());
+    public ResponseEntity<List<DeviceResponse>> getXuandatDevices(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId) {
+        return ResponseEntity.ok(xuanDatService.getDevices(requesterUserId, requesterRole, targetUserId));
     }
 
     @GetMapping("/xuandat/history")
     public ResponseEntity<MonitorHistoryResponse> getXuandatHistory(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
             @RequestParam(required = false) Integer deviceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) String bucket) {
-        return ResponseEntity.ok(xuanDatService.getHistory(deviceId, from, to, bucket));
+        return ResponseEntity.ok(xuanDatService.getHistory(requesterUserId, requesterRole, targetUserId, deviceId, from, to, bucket));
     }
 
     @GetMapping("/xuandat/alerts")
     public ResponseEntity<List<AlertResponse>> getXuandatAlerts(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
             @RequestParam(required = false) Integer deviceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
-        return ResponseEntity.ok(xuanDatService.getAlerts(deviceId, from, to));
+        return ResponseEntity.ok(xuanDatService.getAlerts(requesterUserId, requesterRole, targetUserId, deviceId, from, to));
     }
 
     @GetMapping("/xuandat/export/excel")
     public ResponseEntity<byte[]> exportXuandatExcel(
+            @RequestParam(required = false) Integer requesterUserId,
+            @RequestParam(required = false) String requesterRole,
+            @RequestParam(required = false) Integer targetUserId,
             @RequestParam(required = false) Integer deviceId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to,
             @RequestParam(required = false) String bucket) {
-        return xuanDatService.exportExcel(deviceId, from, to, bucket);
+        return xuanDatService.exportExcel(requesterUserId, requesterRole, targetUserId, deviceId, from, to, bucket);
     }
 }

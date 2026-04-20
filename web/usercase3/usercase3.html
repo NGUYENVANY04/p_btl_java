@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usecase 3 - Theo dõi dữ liệu thiết bị</title>
+    <title>Usecase 3 - Theo doi du lieu thiet bi</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -53,7 +53,7 @@
             <div>
                 <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.3em] mb-2">Usecase 3</p>
                 <h1 class="text-3xl font-bold text-white">Theo dõi dữ liệu thiết bị theo thời gian</h1>
-                <p class="text-slate-400 mt-3 max-w-3xl">Xem lại dữ liệu đo, phát hiện bản ghi vượt ngưỡng công suất hoặc dòng điện, và xuất Excel trực tiếp từ bộ lọc đang xem.</p>
+                <p class="text-slate-400 mt-3 max-w-3xl">Admin có thể lọc tất cả thiết bị, lọc theo từng người dùng, và xuất báo cáo riêng. Tài khoản user chỉ xem được các thiết bị được gán cho mình.</p>
             </div>
             <div class="glass-panel px-4 py-3 rounded-2xl flex items-center gap-3 self-start">
                 <span class="h-3 w-3 rounded-full bg-emerald-400 shadow-[0_0_0_8px_rgba(74,222,128,0.12)]"></span>
@@ -62,7 +62,11 @@
         </section>
 
         <section class="glass-panel p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                <label id="user-filter-group" class="space-y-2">
+                    <span class="text-sm text-slate-400">Người dùng</span>
+                    <select id="user-select" class="modern-input w-full rounded-xl p-3"></select>
+                </label>
                 <label class="space-y-2">
                     <span class="text-sm text-slate-400">Thiết bị</span>
                     <select id="device-select" class="modern-input w-full rounded-xl p-3"></select>
@@ -92,6 +96,7 @@
                 <button id="btn-export" class="bg-pink-500 hover:bg-pink-600 text-white font-semibold px-5 py-3 rounded-xl transition-colors">
                     <i class="fa-solid fa-file-excel mr-2"></i>Xuất Excel
                 </button>
+                <span id="scope-note" class="text-sm text-slate-400"></span>
                 <span id="feedback" class="text-sm text-slate-400">Chọn bộ lọc rồi bấm tải dữ liệu.</span>
             </div>
         </section>
@@ -164,7 +169,7 @@
                             <p class="text-sky-300 text-xs font-bold uppercase tracking-[0.25em] mb-2">Tức thời</p>
                             <h2 class="text-xl font-semibold text-white">Bản ghi gần nhất</h2>
                         </div>
-                        <span id="status-chip" class="px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-300 text-sm border border-emerald-500/20">Ổn định</span>
+                        <span id="status-chip" class="px-4 py-2 rounded-full bg-emerald-500/10 text-emerald-300 text-sm border border-emerald-500/20">ổn định</span>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">

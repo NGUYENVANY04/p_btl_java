@@ -10,6 +10,7 @@ import com.Iot.backend.model.Alert;
 import com.Iot.backend.model.Device;
 import com.Iot.backend.model.DeviceLimit;
 import com.Iot.backend.model.SensorData;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -42,6 +43,7 @@ import java.util.Objects;
 import java.util.Set;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 @Service
@@ -62,12 +64,25 @@ public class xuandat {
         this.apiKey = apiKey;
     }
 
-    public List<DeviceResponse> getDevices() {
-        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
-        query.add("select", "id,name,location,status");
-        query.add("order", "name.asc");
+    public List<Map<String, Object>> getUsers(Integer requesterUserId, String requesterRole) {
+        ScopeContext scope = resolveScope(requesterUserId, requesterRole, null, null);
+        if ("admin".equals(scope.requesterRole())) {
+            return fetchUsers(null).stream()
+                    .map(this::toUserSummary)
+                    .toList();
+        }
 
-        return getList("devices", query, Device[].class).stream()
+        if (scope.scopedUserId() == null) {
+            return List.of();
+        }
+
+        Map<String, Object> currentUser = fetchUser(scope.scopedUserId());
+        return currentUser == null ? List.of() : List.of(toUserSummary(currentUser));
+    }
+
+    public List<DeviceResponse> getDevices(Integer requesterUserId, String requesterRole, Integer targetUserId) {
+        ScopeContext scope = resolveScope(requesterUserId, requesterRole, targetUserId, null);
+        return scope.devices().stream()
                 .map(device -> new DeviceResponse(
                         device.getId(),
                         device.getName(),
@@ -76,9 +91,17 @@ public class xuandat {
                 .toList();
     }
 
-    public MonitorHistoryResponse getHistory(Integer deviceId, LocalDateTime from, LocalDateTime to, String bucket) {
+    public MonitorHistoryResponse getHistory(
+            Integer requesterUserId,
+            String requesterRole,
+            Integer targetUserId,
+            Integer deviceId,
+            LocalDateTime from,
+            LocalDateTime to,
+            String bucket) {
+        ScopeContext scope = resolveScope(requesterUserId, requesterRole, targetUserId, deviceId);
         MonitorRequest request = normalizeRequest(deviceId, from, to, bucket);
-        DashboardSnapshot snapshot = loadSnapshot(request);
+        DashboardSnapshot snapshot = loadSnapshot(request, scope);
         List<MonitorHistoryRowResponse> rows = buildHistoryRows(snapshot, request.bucket());
 
         int breachRows = (int) rows.stream().filter(MonitorHistoryRowResponse::isThresholdBreached).count();
@@ -86,7 +109,7 @@ public class xuandat {
         double totalEnergy = rows.stream().mapToDouble(row -> safeNumber(row.energy())).sum();
 
         return new MonitorHistoryResponse(
-                resolveDeviceResponse(request.deviceId(), snapshot.devicesById()),
+                resolveDeviceResponse(request.deviceId(), scope.devicesById()),
                 new MonitorFiltersResponse(
                         request.deviceId(),
                         formatTimestamp(request.from()),
@@ -101,68 +124,99 @@ public class xuandat {
                         latestTimestamp));
     }
 
-    public List<AlertResponse> getAlerts(Integer deviceId, LocalDateTime from, LocalDateTime to) {
+    public List<AlertResponse> getAlerts(
+            Integer requesterUserId,
+            String requesterRole,
+            Integer targetUserId,
+            Integer deviceId,
+            LocalDateTime from,
+            LocalDateTime to) {
+        ScopeContext scope = resolveScope(requesterUserId, requesterRole, targetUserId, deviceId);
         MonitorRequest request = normalizeRequest(deviceId, from, to, "raw");
-        return fetchAlerts(request.deviceId(), request.from(), request.to()).stream()
+        return fetchAlerts(request.deviceId(), request.from(), request.to(), scope.accessibleDeviceIds()).stream()
                 .map(this::toAlertResponse)
                 .toList();
     }
 
-    public ResponseEntity<byte[]> exportExcel(Integer deviceId, LocalDateTime from, LocalDateTime to, String bucket) {
+    public ResponseEntity<byte[]> exportExcel(
+            Integer requesterUserId,
+            String requesterRole,
+            Integer targetUserId,
+            Integer deviceId,
+            LocalDateTime from,
+            LocalDateTime to,
+            String bucket) {
+        ScopeContext scope = resolveScope(requesterUserId, requesterRole, targetUserId, deviceId);
         MonitorRequest request = normalizeRequest(deviceId, from, to, bucket);
-        DashboardSnapshot snapshot = loadSnapshot(request);
+        DashboardSnapshot snapshot = loadSnapshot(request, scope);
         List<MonitorHistoryRowResponse> rows = buildHistoryRows(snapshot, request.bucket());
         byte[] file = buildSpreadsheetXml(rows, snapshot.alerts()).getBytes(StandardCharsets.UTF_8);
 
-        String filename = "xuandat-report-" + request.from().toLocalDate() + "-to-" + request.to().toLocalDate() + ".xls";
+        String filename = buildExportFilename(scope, request);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.parseMediaType("application/vnd.ms-excel"))
                 .body(file);
     }
 
-    private DashboardSnapshot loadSnapshot(MonitorRequest request) {
-        List<Device> devices = fetchDevices();
-        Map<Integer, Device> devicesById = new HashMap<>();
-        for (Device device : devices) {
-            devicesById.put(device.getId(), device);
+    private DashboardSnapshot loadSnapshot(MonitorRequest request, ScopeContext scope) {
+        Map<Integer, Device> devicesById = new HashMap<>(scope.devicesById());
+        if (scope.accessibleDeviceIds().isEmpty()) {
+            return new DashboardSnapshot(devicesById, List.of(), List.of(), Map.of());
         }
 
-        List<SensorData> sensorRows = fetchSensorData(request);
+        List<SensorData> sensorRows = fetchSensorData(request, scope.accessibleDeviceIds());
         sensorRows.sort(Comparator.comparing(SensorData::getCreated_at, Comparator.nullsLast(Comparator.naturalOrder())));
 
-        Map<Integer, DeviceLimit> limitsByDeviceId = fetchLatestLimits(request.deviceId());
-        syncThresholdAlerts(sensorRows, limitsByDeviceId, devicesById, request);
-        List<Alert> alerts = fetchAlerts(request.deviceId(), request.from(), request.to());
+        Map<Integer, DeviceLimit> limitsByDeviceId = fetchLatestLimits(request.deviceId(), scope.accessibleDeviceIds());
+        syncThresholdAlerts(sensorRows, limitsByDeviceId, devicesById, request, scope.accessibleDeviceIds());
+        List<Alert> alerts = fetchAlerts(request.deviceId(), request.from(), request.to(), scope.accessibleDeviceIds());
 
         return new DashboardSnapshot(devicesById, sensorRows, alerts, limitsByDeviceId);
     }
 
-    private List<Device> fetchDevices() {
+    private List<Device> fetchAllDevices() {
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("select", "id,name,location,status");
+        query.add("order", "name.asc");
         return getList("devices", query, Device[].class);
     }
 
-    private List<SensorData> fetchSensorData(MonitorRequest request) {
+    private List<Device> fetchDevicesByIds(Collection<Integer> deviceIds) {
+        if (deviceIds == null || deviceIds.isEmpty()) {
+            return List.of();
+        }
+
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("select", "id,name,location,status");
+        query.add("order", "name.asc");
+        query.add("id", "in.(" + joinNumbers(deviceIds) + ")");
+        return getList("devices", query, Device[].class);
+    }
+
+    private List<SensorData> fetchSensorData(MonitorRequest request, Set<Integer> accessibleDeviceIds) {
+        if (accessibleDeviceIds.isEmpty()) {
+            return List.of();
+        }
+
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("select", "id,device_id,voltage,current,power,energy,created_at");
         query.add("order", "created_at.asc");
         query.add("created_at", "gte." + formatSupabaseTimestamp(request.from()));
         query.add("created_at", "lte." + formatSupabaseTimestamp(request.to()));
-        if (request.deviceId() != null) {
-            query.add("device_id", "eq." + request.deviceId());
-        }
+        applyDeviceFilter(query, request.deviceId(), accessibleDeviceIds);
         return getList("sensor_data", query, SensorData[].class);
     }
 
-    private Map<Integer, DeviceLimit> fetchLatestLimits(Integer deviceId) {
+    private Map<Integer, DeviceLimit> fetchLatestLimits(Integer deviceId, Set<Integer> accessibleDeviceIds) {
+        if (accessibleDeviceIds.isEmpty()) {
+            return Map.of();
+        }
+
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("select", "id,device_id,max_power,max_current,created_at");
         query.add("order", "created_at.desc");
-        if (deviceId != null) {
-            query.add("device_id", "eq." + deviceId);
-        }
+        applyDeviceFilter(query, deviceId, accessibleDeviceIds);
 
         Map<Integer, DeviceLimit> limitsByDeviceId = new HashMap<>();
         for (DeviceLimit limit : getList("device_limits", query, DeviceLimit[].class)) {
@@ -173,15 +227,17 @@ public class xuandat {
         return limitsByDeviceId;
     }
 
-    private List<Alert> fetchAlerts(Integer deviceId, OffsetDateTime from, OffsetDateTime to) {
+    private List<Alert> fetchAlerts(Integer deviceId, OffsetDateTime from, OffsetDateTime to, Set<Integer> accessibleDeviceIds) {
+        if (accessibleDeviceIds.isEmpty()) {
+            return List.of();
+        }
+
         MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
         query.add("select", "id,device_id,type,message,created_at,is_read");
         query.add("order", "created_at.desc");
         query.add("created_at", "gte." + formatSupabaseTimestamp(from));
         query.add("created_at", "lte." + formatSupabaseTimestamp(to));
-        if (deviceId != null) {
-            query.add("device_id", "eq." + deviceId);
-        }
+        applyDeviceFilter(query, deviceId, accessibleDeviceIds);
         return getList("alerts", query, Alert[].class);
     }
 
@@ -189,12 +245,13 @@ public class xuandat {
             List<SensorData> sensorRows,
             Map<Integer, DeviceLimit> limitsByDeviceId,
             Map<Integer, Device> devicesById,
-            MonitorRequest request) {
+            MonitorRequest request,
+            Set<Integer> accessibleDeviceIds) {
         if (sensorRows.isEmpty()) {
             return;
         }
 
-        List<Alert> existingAlerts = fetchAlerts(request.deviceId(), request.from(), request.to());
+        List<Alert> existingAlerts = fetchAlerts(request.deviceId(), request.from(), request.to(), accessibleDeviceIds);
         Set<String> alertKeys = new LinkedHashSet<>();
         for (Alert alert : existingAlerts) {
             if (alert.getDevice_id() == null || alert.getCreated_at() == null || alert.getType() == null) {
@@ -240,6 +297,21 @@ public class xuandat {
         ResponseEntity<T[]> response = restTemplate.exchange(uri, HttpMethod.GET, entity, responseType);
         T[] body = response.getBody();
         return body == null ? List.of() : Arrays.asList(body);
+    }
+
+    private List<Map<String, Object>> getListOfMaps(String table, MultiValueMap<String, String> queryParams) {
+        ensureConfigured();
+
+        URI uri = buildUri(table, queryParams);
+        HttpEntity<Void> entity = new HttpEntity<>(buildHeaders());
+        ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                uri,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                });
+        List<Map<String, Object>> body = response.getBody();
+        return body == null ? List.of() : body;
     }
 
     private void post(String table, Object payload) {
@@ -510,11 +582,187 @@ public class xuandat {
         return value == null ? "" : String.valueOf(value);
     }
 
+    private ScopeContext resolveScope(
+            Integer requesterUserId,
+            String requesterRole,
+            Integer targetUserId,
+            Integer requestedDeviceId) {
+        String normalizedRole = normalizeRole(requesterUserId, requesterRole);
+        Integer scopedUserId = resolveScopedUserId(normalizedRole, requesterUserId, targetUserId);
+        List<Device> scopedDevices = scopedUserId == null
+                ? fetchAllDevices()
+                : fetchDevicesByIds(fetchDeviceIdsByUser(scopedUserId));
+
+        Map<Integer, Device> devicesById = new HashMap<>();
+        for (Device device : scopedDevices) {
+            devicesById.put(device.getId(), device);
+        }
+
+        if (requestedDeviceId != null && !devicesById.containsKey(requestedDeviceId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Ban khong co quyen xem thiet bi nay.");
+        }
+
+        return new ScopeContext(
+                normalizedRole,
+                requesterUserId,
+                scopedUserId,
+                scopedDevices,
+                devicesById,
+                new LinkedHashSet<>(devicesById.keySet()),
+                resolveUserDisplayName(scopedUserId));
+    }
+
+    private String normalizeRole(Integer requesterUserId, String requesterRole) {
+        if (requesterRole == null || requesterRole.isBlank()) {
+            return requesterUserId == null ? "admin" : "user";
+        }
+        return "admin".equalsIgnoreCase(requesterRole.trim()) ? "admin" : "user";
+    }
+
+    private Integer resolveScopedUserId(String requesterRole, Integer requesterUserId, Integer targetUserId) {
+        if ("admin".equals(requesterRole)) {
+            return targetUserId;
+        }
+
+        if (requesterUserId == null) {
+            throw new ResponseStatusException(BAD_REQUEST, "Thieu requesterUserId cho tai khoan user.");
+        }
+
+        if (targetUserId != null && !Objects.equals(targetUserId, requesterUserId)) {
+            throw new ResponseStatusException(FORBIDDEN, "Ban khong co quyen xem du lieu cua nguoi dung khac.");
+        }
+
+        return requesterUserId;
+    }
+
+    private List<Map<String, Object>> fetchUsers(Integer userId) {
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("select", "id,username,email,role");
+        query.add("order", "username.asc");
+        if (userId != null) {
+            query.add("id", "eq." + userId);
+        }
+        return getListOfMaps("users", query);
+    }
+
+    private Map<String, Object> fetchUser(Integer userId) {
+        if (userId == null) {
+            return null;
+        }
+        List<Map<String, Object>> users = fetchUsers(userId);
+        return users.isEmpty() ? null : users.get(0);
+    }
+
+    private Map<String, Object> toUserSummary(Map<String, Object> user) {
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("id", toInteger(user.get("id")));
+        summary.put("username", stringValue(user.get("username")));
+        summary.put("email", stringValue(user.get("email")));
+        summary.put("role", stringValue(user.get("role")));
+        return summary;
+    }
+
+    private List<Integer> fetchDeviceIdsByUser(Integer userId) {
+        if (userId == null) {
+            return List.of();
+        }
+
+        MultiValueMap<String, String> query = new LinkedMultiValueMap<>();
+        query.add("select", "device_id");
+        query.add("user_id", "eq." + userId);
+
+        return getListOfMaps("user_devices", query).stream()
+                .map(row -> toInteger(row.get("device_id")))
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+    }
+
+    private void applyDeviceFilter(
+            MultiValueMap<String, String> query,
+            Integer requestedDeviceId,
+            Set<Integer> accessibleDeviceIds) {
+        if (requestedDeviceId != null) {
+            query.add("device_id", "eq." + requestedDeviceId);
+            return;
+        }
+
+        if (!accessibleDeviceIds.isEmpty()) {
+            query.add("device_id", "in.(" + joinNumbers(accessibleDeviceIds) + ")");
+        }
+    }
+
+    private String joinNumbers(Collection<Integer> values) {
+        return values.stream()
+                .filter(Objects::nonNull)
+                .map(String::valueOf)
+                .sorted()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
+    }
+
+    private Integer toInteger(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value == null) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(String.valueOf(value));
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private String resolveUserDisplayName(Integer userId) {
+        if (userId == null) {
+            return null;
+        }
+        Map<String, Object> user = fetchUser(userId);
+        if (user == null) {
+            return null;
+        }
+        String username = stringValue(user.get("username"));
+        return username.isBlank() ? "user-" + userId : username;
+    }
+
+    private String buildExportFilename(ScopeContext scope, MonitorRequest request) {
+        StringBuilder filename = new StringBuilder("xuandat-report");
+        if (scope.scopedUserId() != null) {
+            filename.append("-user-").append(sanitizeFilenamePart(scope.scopedUserName() == null
+                    ? String.valueOf(scope.scopedUserId())
+                    : scope.scopedUserName()));
+        }
+        filename.append("-").append(request.from().toLocalDate());
+        filename.append("-to-").append(request.to().toLocalDate());
+        filename.append(".xls");
+        return filename.toString();
+    }
+
+    private String sanitizeFilenamePart(String value) {
+        return stringValue(value)
+                .trim()
+                .replaceAll("[^a-zA-Z0-9_-]+", "-")
+                .replaceAll("-{2,}", "-")
+                .replaceAll("^-|-$", "");
+    }
+
     private record MonitorRequest(
             Integer deviceId,
             OffsetDateTime from,
             OffsetDateTime to,
             String bucket) {
+    }
+
+    private record ScopeContext(
+            String requesterRole,
+            Integer requesterUserId,
+            Integer scopedUserId,
+            List<Device> devices,
+            Map<Integer, Device> devicesById,
+            Set<Integer> accessibleDeviceIds,
+            String scopedUserName) {
     }
 
     private record DashboardSnapshot(

@@ -1,12 +1,17 @@
 const API_BASE = "http://localhost:8080/api/xuandat";
+const currentUser = getCurrentUser();
+const isAdmin = isAdminRole(currentUser.role);
 
 const elements = {
+    userFilterGroup: document.getElementById("user-filter-group"),
+    userSelect: document.getElementById("user-select"),
     deviceSelect: document.getElementById("device-select"),
     fromInput: document.getElementById("from-input"),
     toInput: document.getElementById("to-input"),
     bucketSelect: document.getElementById("bucket-select"),
     filterButton: document.getElementById("btn-filter"),
     exportButton: document.getElementById("btn-export"),
+    scopeNote: document.getElementById("scope-note"),
     feedback: document.getElementById("feedback"),
     totalRows: document.getElementById("total-rows"),
     totalEnergy: document.getElementById("total-energy"),
@@ -27,19 +32,78 @@ const elements = {
     alertsList: document.getElementById("alerts-list")
 };
 
+const state = {
+    users: [],
+    devices: []
+};
+
 let consumptionChart;
 
 document.addEventListener("DOMContentLoaded", async () => {
     setDefaultRange();
     initChart();
     bindEvents();
-    await loadDevices();
+    setupRoleUi();
+    await loadFilters();
     await loadDashboard();
 });
+
+function getCurrentUser() {
+    try {
+        if (window.parent && window.parent !== window && window.parent.__CURRENT_USER__) {
+            const parentUser = window.parent.__CURRENT_USER__;
+            if (parentUser && parentUser.role) {
+                return {
+                    ...parentUser,
+                    name: parentUser.name || parentUser.username || "Admin",
+                    role: normalizeRole(parentUser.role)
+                };
+            }
+        }
+    } catch (error) {
+        console.warn("Cannot read currentUser from parent window", error);
+    }
+
+    try {
+        const saved = JSON.parse(sessionStorage.getItem("currentUser"));
+        if (saved && saved.role) {
+            return {
+                ...saved,
+                name: saved.name || saved.username || "Admin",
+                role: normalizeRole(saved.role)
+            };
+        }
+    } catch (error) {
+        console.warn("Cannot parse currentUser from sessionStorage", error);
+    }
+
+    return {
+        id: 0,
+        name: "Admin",
+        role: "admin"
+    };
+}
+
+function normalizeRole(role) {
+    return String(role || "").trim().toLowerCase();
+}
+
+function isAdminRole(role) {
+    return normalizeRole(role) === "admin";
+}
 
 function bindEvents() {
     elements.filterButton.addEventListener("click", loadDashboard);
     elements.exportButton.addEventListener("click", exportExcel);
+    elements.userSelect.addEventListener("change", async () => {
+        await loadDevices();
+        await loadDashboard();
+    });
+}
+
+function setupRoleUi() {
+    elements.userFilterGroup.classList.remove("hidden");
+    updateScopeNote();
 }
 
 function setDefaultRange() {
@@ -49,30 +113,65 @@ function setDefaultRange() {
     elements.toInput.value = toDatetimeLocalValue(now);
 }
 
-async function loadDevices() {
+async function loadFilters() {
+    await loadUsers();
+    await loadDevices();
+}
+
+async function loadUsers() {
     try {
-        const response = await fetch(`${API_BASE}/devices`);
+        const response = await fetch(`${API_BASE}/users?${buildRequesterParams().toString()}`);
+        if (!response.ok) {
+            throw new Error("Không tải được danh sách người dùng");
+        }
+
+        state.users = await response.json();
+        const options = [
+            `<option value="">Tất cả người dùng</option>`,
+            ...state.users.map((user) => `<option value="${user.id}">${escapeHtml(user.username || user.email || `User ${user.id}`)}</option>`)
+        ];
+        elements.userSelect.innerHTML = options.join("");
+        elements.userSelect.value = "";
+    } catch (error) {
+        state.users = [];
+        elements.userSelect.innerHTML = `<option value="">Tất cả người dùng</option>`;
+        setFeedback(error.message, true);
+    }
+}
+
+async function loadDevices() {
+    const previousValue = elements.deviceSelect.value;
+
+    try {
+        const response = await fetch(`${API_BASE}/devices?${buildScopeParams().toString()}`);
         if (!response.ok) {
             throw new Error("Không tải được danh sách thiết bị");
         }
 
-        const devices = await response.json();
+        state.devices = await response.json();
+        const allLabel = buildAllDeviceLabel();
         elements.deviceSelect.innerHTML = [
-            `<option value="">Tất cả thiết bị</option>`,
-            ...devices.map((device) => `<option value="${device.id}">${escapeHtml(device.name)}${device.location ? ` - ${escapeHtml(device.location)}` : ""}</option>`)
+            `<option value="">${escapeHtml(allLabel)}</option>`,
+            ...state.devices.map((device) => `<option value="${device.id}">${escapeHtml(formatDeviceOption(device))}</option>`)
         ].join("");
 
-        if (devices.length > 0) {
-            elements.deviceSelect.value = String(devices[0].id);
+        if (previousValue && state.devices.some((device) => String(device.id) === previousValue)) {
+            elements.deviceSelect.value = previousValue;
+        } else {
+            elements.deviceSelect.value = "";
         }
+
+        updateScopeNote();
     } catch (error) {
+        state.devices = [];
+        elements.deviceSelect.innerHTML = `<option value="">Không có thiết bị</option>`;
         setFeedback(error.message, true);
     }
 }
 
 async function loadDashboard() {
     setBusyState(true);
-    const params = buildParams();
+    const params = buildDataParams();
 
     try {
         const [historyResponse, alertsResponse] = await Promise.all([
@@ -87,15 +186,20 @@ async function loadDashboard() {
         const history = await historyResponse.json();
         const alerts = await alertsResponse.json();
 
-        renderSummary(history.summary);
-        renderChart(history.rows, history.device);
-        renderTable(history.rows);
-        renderLatestMeasurement(history.rows);
-        renderAlerts(alerts);
+        renderSummary(history.summary || {});
+        renderChart(history.rows || [], history.device);
+        renderTable(history.rows || []);
+        renderLatestMeasurement(history.rows || []);
+        renderAlerts(alerts || []);
 
-        elements.tableBucket.textContent = history.filters.bucket;
+        elements.tableBucket.textContent = history.filters?.bucket || elements.bucketSelect.value;
         elements.systemStatus.textContent = "Đã kết nối";
-        setFeedback(`Đã tải ${history.summary.totalRows} bản ghi từ service xuandat.`, false);
+
+        if (!state.devices.length) {
+            setFeedback("Không có thiết bị nào trong phạm vi tài khoản hiện tại.", false);
+        } else {
+            setFeedback(`Đã tải ${history.summary?.totalRows || 0} bản ghi theo bộ lọc hiện tại.`, false);
+        }
     } catch (error) {
         resetDashboard();
         elements.systemStatus.textContent = "Lỗi kết nối";
@@ -105,21 +209,51 @@ async function loadDashboard() {
     }
 }
 
-function buildParams() {
+function buildRequesterParams() {
     const params = new URLSearchParams();
-    if (elements.deviceSelect.value) {
-        params.set("deviceId", elements.deviceSelect.value);
+
+    if (currentUser.id !== undefined && currentUser.id !== null && currentUser.id !== "") {
+        params.set("requesterUserId", String(currentUser.id));
     }
-    params.set("from", elements.fromInput.value);
-    params.set("to", elements.toInput.value);
-    params.set("bucket", elements.bucketSelect.value);
+
+    if (currentUser.role) {
+        params.set("requesterRole", normalizeRole(currentUser.role));
+    }
+
     return params;
 }
 
+function buildScopeParams() {
+    const params = buildRequesterParams();
+    const targetUserId = getTargetUserId();
+    if (targetUserId !== null && targetUserId !== undefined && targetUserId !== "") {
+        params.set("targetUserId", String(targetUserId));
+    }
+    return params;
+}
+
+function buildDataParams() {
+    const params = buildScopeParams();
+
+    if (elements.deviceSelect.value) {
+        params.set("deviceId", elements.deviceSelect.value);
+    }
+
+    params.set("from", elements.fromInput.value);
+    params.set("to", elements.toInput.value);
+    params.set("bucket", elements.bucketSelect.value);
+
+    return params;
+}
+
+function getTargetUserId() {
+    return elements.userSelect.value || null;
+}
+
 function renderSummary(summary) {
-    elements.totalRows.textContent = summary.totalRows;
-    elements.totalEnergy.textContent = Number(summary.totalEnergy || 0).toFixed(2);
-    elements.alertCount.textContent = summary.alertCount;
+    elements.totalRows.textContent = String(summary.totalRows || 0);
+    elements.totalEnergy.textContent = formatNumber(summary.totalEnergy);
+    elements.alertCount.textContent = String(summary.alertCount || 0);
     elements.latestTimestamp.textContent = summary.latestTimestamp || "--";
 }
 
@@ -128,7 +262,7 @@ function renderChart(rows, device) {
     consumptionChart.data.datasets[0].data = rows.map((row) => Number(row.power || 0));
     consumptionChart.data.datasets[1].data = rows.map((row) => Number(row.current || 0));
     consumptionChart.update();
-    elements.chartDeviceName.textContent = device?.name || "Tất cả thiết bị";
+    elements.chartDeviceName.textContent = device?.name || buildAllDeviceLabel();
 }
 
 function renderTable(rows) {
@@ -141,7 +275,9 @@ function renderTable(rows) {
         const badgeClass = row.isThresholdBreached
             ? "inline-flex items-center rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 px-3 py-1 text-xs"
             : "inline-flex items-center rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-3 py-1 text-xs";
-        const badgeText = row.isThresholdBreached ? row.breachTypes.join(", ") : "Ổn định";
+        const badgeText = row.isThresholdBreached
+            ? (Array.isArray(row.breachTypes) && row.breachTypes.length ? row.breachTypes.join(", ") : "Vượt ngưỡng")
+            : "Ổn định";
 
         return `
             <tr class="hover:bg-slate-900/20 transition-colors">
@@ -174,7 +310,7 @@ function renderLatestMeasurement(rows) {
     elements.rtVoltage.textContent = formatNumber(latest.voltage);
     elements.rtCurrent.textContent = formatNumber(latest.current);
     elements.rtPower.textContent = formatNumber(latest.power);
-    elements.lastUpdate.textContent = `Lần đo cuối: ${latest.createdAt}`;
+    elements.lastUpdate.textContent = `Lần đo cuối: ${latest.createdAt || "--"}`;
 
     const percent = Math.min((Number(latest.power || 0) / 1200) * 100, 100);
     elements.loadProgress.style.width = `${percent}%`;
@@ -204,13 +340,13 @@ function renderAlerts(alerts) {
 
     const latest = alerts[0];
     elements.latestAlert.innerHTML = `
-        <h3 class="font-semibold text-white mb-2">${escapeHtml(latest.type)}</h3>
+        <h3 class="font-semibold text-white mb-2">${escapeHtml(latest.type || "Cảnh báo")}</h3>
         <p class="text-sm text-slate-300 leading-6">${escapeHtml(latest.message || "Không có nội dung")}<br>${escapeHtml(latest.createdAt || "")}</p>
     `;
 
     elements.alertsList.innerHTML = alerts.slice(0, 8).map((alert) => `
         <div class="rounded-2xl border border-rose-500/15 bg-slate-900/40 p-4">
-            <p class="font-semibold text-white mb-1">${escapeHtml(alert.type)}</p>
+            <p class="font-semibold text-white mb-1">${escapeHtml(alert.type || "Cảnh báo")}</p>
             <p class="text-sm text-slate-400 leading-6">${escapeHtml(alert.message || "Không có nội dung")}</p>
             <p class="text-xs text-slate-500 mt-2">${escapeHtml(alert.createdAt || "")}</p>
         </div>
@@ -220,7 +356,7 @@ function renderAlerts(alerts) {
 async function exportExcel() {
     setBusyState(true);
     try {
-        const response = await fetch(`${API_BASE}/export/excel?${buildParams().toString()}`);
+        const response = await fetch(`${API_BASE}/export/excel?${buildDataParams().toString()}`);
         if (!response.ok) {
             throw new Error("Không thể xuất file Excel");
         }
@@ -229,10 +365,10 @@ async function exportExcel() {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = "xuandat-usecase3-report.xls";
+        anchor.download = resolveExportFilename(response.headers.get("Content-Disposition"));
         anchor.click();
         URL.revokeObjectURL(url);
-        setFeedback("Đã xuất Excel từ dữ liệu usecase 3.", false);
+        setFeedback("Đã xuất Excel theo phạm vi bộ lọc hiện tại.", false);
     } catch (error) {
         setFeedback(error.message, true);
     } finally {
@@ -311,6 +447,7 @@ function resetDashboard() {
     renderTable([]);
     renderLatestMeasurement([]);
     renderAlerts([]);
+    elements.chartDeviceName.textContent = buildAllDeviceLabel();
     consumptionChart.data.labels = [];
     consumptionChart.data.datasets[0].data = [];
     consumptionChart.data.datasets[1].data = [];
@@ -320,6 +457,8 @@ function resetDashboard() {
 function setBusyState(isBusy) {
     elements.filterButton.disabled = isBusy;
     elements.exportButton.disabled = isBusy;
+    elements.userSelect.disabled = isBusy;
+    elements.deviceSelect.disabled = isBusy;
     elements.filterButton.innerHTML = isBusy
         ? '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Đang tải...'
         : '<i class="fa-solid fa-filter mr-2"></i>Tải dữ liệu';
@@ -330,8 +469,75 @@ function setFeedback(message, isError) {
     elements.feedback.style.color = isError ? "#fecdd3" : "#93c5fd";
 }
 
+function updateScopeNote() {
+    if (isAdmin) {
+        const selectedUser = getSelectedUserLabel();
+        const targetUserId = getTargetUserId();
+        elements.scopeNote.textContent = targetUserId
+            ? `Phạm vi: thiết bị của ${selectedUser}`
+            : "Phạm vi: tất cả người dùng và tất cả thiết bị";
+        return;
+    }
+
+    elements.scopeNote.textContent = `Phạm vi: chỉ hiển thị thiết bị của ${currentUser.name || "bạn"}`;
+}
+
+function getSelectedUserLabel() {
+    if (!isAdmin) {
+        return currentUser.name || "bạn";
+    }
+
+    const option = elements.userSelect.options[elements.userSelect.selectedIndex];
+    return option ? option.textContent : "người dùng";
+}
+
+function buildAllDeviceLabel() {
+    if (!state.devices.length) {
+        return "Không có thiết bị";
+    }
+
+    if (!isAdmin) {
+        return "Tất cả thiết bị của bạn";
+    }
+
+    return getTargetUserId()
+        ? `Tất cả thiết bị của ${getSelectedUserLabel()}`
+        : "Tất cả thiết bị";
+}
+
+function formatDeviceOption(device) {
+    const parts = [device.name || `Thiết bị ${device.id}`];
+    if (device.location) {
+        parts.push(device.location);
+    }
+    return parts.join(" - ");
+}
+
+function resolveExportFilename(contentDisposition) {
+    if (contentDisposition) {
+        const match = contentDisposition.match(/filename="?([^"]+)"?/i);
+        if (match?.[1]) {
+            return match[1];
+        }
+    }
+
+    const targetUser = isAdmin && getTargetUserId() ? `-user-${slugify(getSelectedUserLabel())}` : "";
+    return `xuandat-usecase3${targetUser}.xls`;
+}
+
+function slugify(value) {
+    return String(value || "report")
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9_-]+/g, "-")
+        .replace(/-{2,}/g, "-")
+        .replace(/^-|-$/g, "");
+}
+
 function formatNumber(value) {
-    return Number(value || 0).toFixed(2);
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) ? parsed.toFixed(2) : "0.00";
 }
 
 function toDatetimeLocalValue(date) {

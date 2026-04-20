@@ -2,6 +2,30 @@
 let currentUser = null;
 let charts = {};
 
+function normalizeRole(role) {
+    return String(role || '').trim().toLowerCase();
+}
+
+function isAdminUser(user) {
+    return normalizeRole(user && user.role) === 'admin';
+}
+
+function syncCurrentUserState() {
+    if (!currentUser) {
+        window.__CURRENT_USER__ = null;
+        sessionStorage.removeItem("currentUser");
+        return;
+    }
+
+    currentUser = {
+        ...currentUser,
+        role: normalizeRole(currentUser.role)
+    };
+
+    window.__CURRENT_USER__ = currentUser;
+    sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+}
+
 // User database (in production, this would be on the server)
 const userDatabase = [
     {
@@ -57,7 +81,7 @@ async function handleLogin(event) {
             role: 'admin'
         };
         // Lưu vào bộ nhớ trình duyệt
-        sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+        syncCurrentUserState();
         afterLoginSuccess();
         return;
     }
@@ -87,7 +111,7 @@ async function handleLogin(event) {
                 id: data.id,            // Lấy ID = 3 từ JSON của bạn
                 name: data.username,    // Đổi data.name thành data.username cho đúng JSON
                 email: data.email,      // Lấy email từ JSON
-                role: data.role || 'user',
+                role: normalizeRole(data.role) || 'user',
                 permissions: [
                     'view_dashboard',
                     'view_sensors',
@@ -101,7 +125,7 @@ async function handleLogin(event) {
             };
 
             // LƯU QUAN TRỌNG: Cất vào sessionStorage
-            sessionStorage.setItem("currentUser", JSON.stringify(currentUser));
+            syncCurrentUserState();
 
             console.log("Đăng nhập thành công, ID lưu lại là:", currentUser.id);
             afterLoginSuccess();
@@ -140,7 +164,7 @@ function updateRoleDisplay() {
     const userInfo = document.querySelector('.user-info');
     const roleBadge = document.createElement('div');
     roleBadge.className = `role-badge role-${currentUser.role}`;
-    roleBadge.textContent = currentUser.role === 'admin' ? 'Quản trị viên' : 'Người dùng';
+    roleBadge.textContent = isAdminUser(currentUser) ? 'Quản trị viên' : 'Người dùng';
 
     // Remove existing role badge if any
     const existingBadge = userInfo.querySelector('.role-badge');
@@ -154,7 +178,7 @@ function applyRolePermissions() {
 
     if (!submenu) return;
 
-    if (currentUser.role === "admin") {
+    if (isAdminUser(currentUser)) {
         // ADMIN: ẩn 2 page con
         submenu.style.display = "none";
     } else {
@@ -163,7 +187,7 @@ function applyRolePermissions() {
     }
 }
 function checkPermission(url) {
-    if (!currentUser || currentUser.role === 'admin') return true;
+    if (!currentUser || isAdminUser(currentUser)) return true;
 
     const permissions = currentUser.permissions || [];
 
@@ -267,6 +291,7 @@ function updatePageTitle(url) {
 function handleLogout() {
     if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
         currentUser = null;
+        syncCurrentUserState();
 
         // Destroy charts
         Object.values(charts).forEach(chart => {
@@ -290,7 +315,7 @@ function handleLogout() {
 function loadHomeContent() {
     const homeContent = document.getElementById('home-content');
 
-    if (currentUser.role === 'admin') {
+    if (isAdminUser(currentUser)) {
         loadAdminDashboard(homeContent);
     } else {
         loadUserDashboard(homeContent);
