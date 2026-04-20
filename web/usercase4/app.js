@@ -2,17 +2,24 @@
 const SUPABASE_URL = "https://znfxhbrkabxenuzrcogd.supabase.co";
 const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuZnhoYnJrYWJ4ZW51enJjb2dkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NTQ0Mjk4NSwiZXhwIjoyMDkxMDE4OTg1fQ.qNtUEq0HebqEs6tHrWT6Ghj94-UOb5dshIWAvWB8r6Y';
 
+
 const supa = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
 const statusDiv = document.getElementById("status");
 const dashboard = document.getElementById("device-dashboard");
 
-document.addEventListener("DOMContentLoaded", () => {
+// ================== GLOBAL STATE ==================
+let realtimeChannel = null;
+
+// ================== INIT ==================
+document.addEventListener("DOMContentLoaded", async () => {
     console.log("🚀 Hệ thống IoT đang khởi động...");
 
-    // refreshAll();
+    await initDashboard();
     startRealtime();
 });
+
+// ================== DASHBOARD ==================
 async function initDashboard() {
 
     const statusDiv = document.getElementById("status");
@@ -21,6 +28,7 @@ async function initDashboard() {
     dashboard.innerHTML = "⏳ Đang tải...";
 
     const user = JSON.parse(sessionStorage.getItem("currentUser"));
+
     if (!user || !user.id) {
         statusDiv.innerHTML = "❌ Chưa đăng nhập";
         return;
@@ -37,14 +45,14 @@ async function initDashboard() {
             return;
         }
 
-        if (!links || links.length === 0) {
+        if (!links?.length) {
             dashboard.innerHTML = "⚠️ User chưa có thiết bị";
             return;
         }
 
         const deviceIds = links.map(l => Number(l.device_id));
 
-        const api = document.getElementById("api").value;
+        const api = document.getElementById("api")?.value;
         const res = await fetch(`${api}/api/devices`);
         const allDevices = await res.json();
 
@@ -66,6 +74,8 @@ async function initDashboard() {
         statusDiv.innerHTML = "❌ Error init";
     }
 }
+
+// ================== RENDER DEVICE ==================
 function renderDevice(device) {
 
     const container = document.getElementById("device-dashboard");
@@ -75,7 +85,6 @@ function renderDevice(device) {
     card.id = `card-${device.id}`;
 
     card.innerHTML = `
-        <!-- HEADER -->
         <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
                 <strong>🖥️ ${device.name || 'Không tên'}</strong> (ID: ${device.id})
@@ -87,28 +96,24 @@ function renderDevice(device) {
             </div>
         </div>
 
-        <!-- STATUS -->
         <div id="ctrl-status-${device.id}" class="status-box" style="margin-top:10px;">
             Trạng thái: Sẵn sàng
         </div>
 
-        <!-- TABLE -->
         <div class="table-container" style="margin-top:10px;">
             <table>
                 <thead>
                     <tr>
                         <th>Mã tin</th>
-                        <th>Điện áp (V)</th>
-                        <th>Dòng điện (A)</th>
-                        <th>Công suất (W)</th>
-                        <th>Số Điện </th>
+                        <th>Điện áp</th>
+                        <th>Dòng</th>
+                        <th>Công suất</th>
+                        <th>Energy</th>
                         <th>Thời gian</th>
                     </tr>
                 </thead>
                 <tbody id="tb-${device.id}">
-                    <tr>
-                        <td colspan="5">Đang đợi dữ liệu...</td>
-                    </tr>
+                    <tr><td colspan="6">Đang đợi dữ liệu...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -117,8 +122,9 @@ function renderDevice(device) {
     container.appendChild(card);
 }
 
-
+// ================== HISTORY ==================
 async function fetchHistory(id, limit) {
+
     const { data, error } = await supa
         .from("sensor_data")
         .select("*")
@@ -127,33 +133,27 @@ async function fetchHistory(id, limit) {
         .limit(limit);
 
     if (error) {
-        console.error(`Lỗi tải lịch sử cho ID ${id}:`, error);
+        console.error(error);
         return;
     }
 
-    if (data) {
-        const tbody = document.getElementById(`tb-${id}`);
-        if (tbody) {
-            tbody.innerHTML = "";
+    const tbody = document.getElementById(`tb-${id}`);
+    if (!tbody) return;
 
-            [...data].reverse().forEach(row => {
-                updateTable(id, row, false);
-            });
-        }
-    }
+    tbody.innerHTML = "";
+
+    [...(data || [])].reverse().forEach(row => {
+        updateTable(id, row, false);
+    });
 }
 
-
+// ================== UPDATE TABLE ==================
 function updateTable(id, d, isNew = false) {
 
     const tbody = document.getElementById(`tb-${id}`);
     if (!tbody) return;
 
-    if (
-        tbody.rows.length === 1 &&
-        (tbody.rows[0].cells.length === 1 ||
-            tbody.innerText.includes("Đang đợi"))
-    ) {
+    if (tbody.innerText.includes("Đang đợi")) {
         tbody.innerHTML = "";
     }
 
@@ -161,94 +161,71 @@ function updateTable(id, d, isNew = false) {
     if (isNew) r.classList.add("new-row");
 
     r.innerHTML = `
-    <td>#${d.id}</td>
-    <td>${d.voltage ?? 0}</td>
-    <td>${d.current ?? 0}</td>
-    <td>${d.power ?? 0}</td>
-    <td>${d.energy ?? 0}</td>
-    <td>${new Date().toLocaleTimeString()}</td>
-`;
+        <td>#${d.id}</td>
+        <td>${d.voltage ?? 0}</td>
+        <td>${d.current ?? 0}</td>
+        <td>${d.power ?? 0}</td>
+        <td>${d.energy ?? 0}</td>
+        <td>${new Date().toLocaleTimeString()}</td>
+    `;
 
-    const limitInput = document.getElementById('limit');
-    const limit = limitInput ? parseInt(limitInput.value) : 10;
+    const limit = parseInt(document.getElementById("limit")?.value || 10);
 
     while (tbody.rows.length > limit) {
-        tbody.deleteRow(tbody.rows.length - 1);
+        tbody.deleteRow(-1);
     }
 }
-async function loadData(deviceId) {
 
-    const limit = document.getElementById("limit").value;
-
-    const { data } = await supa
-        .from("sensor_data")
-        .select("*")
-        .eq("device_id", deviceId)
-        .order("id", { ascending: false })
-        .limit(limit);
-
-    const body = document.getElementById(`table-body-${deviceId}`);
-    body.innerHTML = "";
-
-    data.reverse().forEach(d => {
-        const row = body.insertRow(0);
-        row.innerHTML = `
-            <td>${d.id}</td>
-            <td>${d.voltage}</td>
-            <td>${d.current}</td>
-            <td>${d.power}</td>
-            <td>${d.energy}</td>
-            <td>${new Date(d.created_at).toLocaleTimeString()}</td>
-        `;
-    });
-}
-
+// ================== CONTROL DEVICE ==================
 window.controlDevice = async function (id, status) {
+
     const el = document.getElementById(`ctrl-status-${id}`);
     if (el) el.innerHTML = "⏳ Sending...";
 
     try {
-        const res = await fetch(`http://localhost:8080/api/control`, {
+        const res = await fetch("http://localhost:8080/api/control", {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                deviceId: id,
-                status: status
-            })
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ deviceId: id, status })
         });
 
-        if (res.ok) {
-            if (el) el.innerHTML = "✅ OK";
-        } else {
-            if (el) el.innerHTML = "❌ FAIL";
+        if (el) {
+            el.innerHTML = res.ok ? "✅ OK" : "❌ FAIL";
         }
+
     } catch (e) {
         if (el) el.innerHTML = "❌ ERROR";
-        console.error("Lỗi điều khiển:", e);
+        console.error(e);
+    }
+};
+
+// ================== REALTIME (FIXED) ==================
+function startRealtime() {
+
+    if (realtimeChannel) {
+        supa.removeChannel(realtimeChannel);
     }
 
-    return false;
-};
-function startRealtime() {
-    supa.channel('iot-public-channel')
-        .on('postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'sensor_data' },
+    realtimeChannel = supa.channel("iot-public-channel")
+        .on(
+            "postgres_changes",
+            {
+                event: "INSERT",
+                schema: "public",
+                table: "sensor_data"
+            },
             (payload) => {
-                console.log("📡 Nhận dữ liệu Realtime:", payload.new);
+                console.log("📡 Realtime:", payload.new);
                 updateTable(payload.new.device_id, payload.new, true);
             }
         )
         .subscribe((status) => {
-            console.log("Kênh Realtime:", status);
+            console.log("Realtime status:", status);
         });
 }
 
+// ================== MANUAL ==================
 window.manualCheck = function () {
-    console.log("Refreshing dashboard...");
     initDashboard();
+    startRealtime();
 };
-
-initDashboard();
-startRealtime();
