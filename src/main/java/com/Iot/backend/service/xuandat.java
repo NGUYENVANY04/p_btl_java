@@ -151,18 +151,20 @@ public class xuandat {
 
         List<Map<String, Object>> result = new ArrayList<>();
 
-        // Map device_id → tên thiết bị (theo device_id thật trong Supabase)
+        // Fetch tên thiết bị thật từ bảng devices trong Supabase
         Map<Integer, String> deviceNameMap = new HashMap<>();
-        deviceNameMap.put(101, "Nguyễn Văn A (Nhà 101)");
-        deviceNameMap.put(90,  "Trần Thị B (Nhà 102)");
-        deviceNameMap.put(87,  "Lê Văn C (Nhà 103)");
-
-        // Fallback cycle cho device_id khác
-        String[] fallbackNames = {
-            "Nguyễn Văn A (Nhà 101)",
-            "Trần Thị B (Nhà 102)",
-            "Lê Văn C (Nhà 103)"
-        };
+        try {
+            List<Map<String, Object>> devices = getDevices();
+            for (Map<String, Object> d : devices) {
+                if (d.get("id") != null) {
+                    Integer id = ((Number) d.get("id")).intValue();
+                    String name = d.get("name") != null ? d.get("name").toString() : "Thiết bị " + id;
+                    deviceNameMap.put(id, name);
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("[xuandat] Không thể fetch device names: " + e.getMessage());
+        }
 
         for (Map<String, Object> row : data) {
             try {
@@ -181,9 +183,7 @@ public class xuandat {
 
                 Map<String, Object> item = new HashMap<>();
                 item.put("time", time + " " + formatDate(day));
-                String deviceName = deviceNameMap.containsKey(devId)
-                        ? deviceNameMap.get(devId)
-                        : fallbackNames[result.size() % fallbackNames.length];
+                String deviceName = deviceNameMap.getOrDefault(devId, "Thiết bị " + devId);
                 item.put("device", deviceName);
                 item.put("voltage", toDouble(row.get("voltage")));
                 item.put("current", toDouble(row.get("current")));
