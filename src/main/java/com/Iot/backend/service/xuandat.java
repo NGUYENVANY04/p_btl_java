@@ -128,11 +128,9 @@ public class xuandat {
 
         // Map device_id → tên thiết bị (theo device_id thật trong Supabase)
         Map<Integer, String> deviceNameMap = new HashMap<>();
-        deviceNameMap.put(87,  "Nguyễn Văn A (Nhà 101)");
-        deviceNameMap.put(90,  "Trần Thị B (Nhà 102)");
         deviceNameMap.put(101, "Nguyễn Văn A (Nhà 101)");
-        deviceNameMap.put(102, "Trần Thị B (Nhà 102)");
-        deviceNameMap.put(103, "Lê Văn C (Nhà 103)");
+        deviceNameMap.put(90,  "Trần Thị B (Nhà 102)");
+        deviceNameMap.put(87,  "Lê Văn C (Nhà 103)");
 
         // Fallback cycle cho device_id khác
         String[] fallbackNames = {

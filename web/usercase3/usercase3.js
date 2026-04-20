@@ -4,12 +4,8 @@ const CONFIG = {
     API_BASE_URL: 'http://localhost:8080/api/xuandat'
 };
 
-// Map device_id → device_id số
-const DEVICE_MAP = {
-    "1": 101, // Điều hòa phòng khách
-    "2": 102, // Bình nóng lạnh
-    "3": 103  // Hệ thống đèn trần
-};
+// device-select giờ có value = device_id thật trong Supabase (101, 90, 87)
+// Không cần map nữa, lấy trực tiếp
 
 let consumptionChart;
 let simulationInterval;
@@ -95,8 +91,7 @@ async function startRealtimeAPI() {
 async function fetchAndRenderRealtime() {
     try {
         const deviceSelect = document.getElementById('device-select');
-        const rawVal = deviceSelect ? deviceSelect.value : "1";
-        const deviceId = DEVICE_MAP[rawVal] || 101;
+        const deviceId = deviceSelect ? parseInt(deviceSelect.value) : 101;
 
         const response = await fetch(`${CONFIG.API_BASE_URL}/realtime?deviceId=${deviceId}`);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
