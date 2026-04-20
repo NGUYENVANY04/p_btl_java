@@ -1,11 +1,29 @@
-// Cấu hình Biểu đồ bằng Chart.js
+// ================= CẤU HÌNH KẾT NỐI API =================
+const CONFIG = {
+    USE_MOCK_DATA: false,
+    API_BASE_URL: 'http://localhost:8080/api/xuandat'
+};
+
+// Map device_id → device_id số
+const DEVICE_MAP = {
+    "1": 101, // Điều hòa phòng khách
+    "2": 102, // Bình nóng lạnh
+    "3": 103  // Hệ thống đèn trần
+};
+
+let consumptionChart;
+let simulationInterval;
+let isOnline = true;
+
+// ===============================================================
+// BOOT
+// ===============================================================
 document.addEventListener('DOMContentLoaded', function () {
     initChart();
 
     if (CONFIG.USE_MOCK_DATA) {
-        initSimulatedData(); // Chạy đồ họa ảo
+        initSimulatedData();
     } else {
-        // Sau này Backend Java viết xong API sẽ gọi dòng này
         startRealtimeAPI();
     }
 
@@ -13,10 +31,12 @@ document.addEventListener('DOMContentLoaded', function () {
     initConnectionToggle();
 });
 
+// ===============================================================
+// CONNECTION TOGGLE (Bật/Tắt giả lập kết nối để demo)
+// ===============================================================
 function initConnectionToggle() {
     document.getElementById('btn-toggle-connection')?.addEventListener('click', function () {
         if (isOnline) {
-            // Tắt kết nối
             clearInterval(simulationInterval);
             isOnline = false;
             this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Bật lại (Test)';
@@ -32,10 +52,9 @@ function initConnectionToggle() {
                 statusText.className = 'text-xs font-semibold text-slate-400';
                 statusText.innerText = 'Offline';
             }
-            document.getElementById('last-update').innerText = 'Mất kết nối server';
-            document.getElementById('last-update').style.color = '#ef4444'; // Đỏ
+            const lu = document.getElementById('last-update');
+            if (lu) { lu.innerText = 'Mất kết nối server'; lu.style.color = '#ef4444'; }
         } else {
-            // Bật kết nối
             isOnline = true;
             this.innerHTML = '<i class="fa-solid fa-power-off mr-1"></i> Ngắt kết nối (Test)';
             this.classList.replace('bg-red-500/20', 'bg-slate-700');
@@ -60,85 +79,117 @@ function initConnectionToggle() {
     });
 }
 
-// ================= CẤU HÌNH KẾT NỐI API =================
-const CONFIG = {
-    USE_MOCK_DATA: false,
-    API_BASE_URL: 'http://localhost:8080/api/quochoc'
-};
-
+// ===============================================================
+// REALTIME: Gọi API /api/xuandat/realtime mỗi 3 giây
+// ===============================================================
 async function startRealtimeAPI() {
-    // Gọi API mỗi 3 giây thay vì random
+    // Gọi ngay lần đầu
+    await fetchAndRenderRealtime();
+
     simulationInterval = setInterval(async () => {
         if (!isOnline) return;
-        try {
-            // Lấy ngày từ ô Bộ Lọc trên màn hình (Mặc định 2026-04-17 hoặc ngày user chọn)
-            const today = document.getElementById('filter-date').value;
-
-            // ĐÂY LÀ DÒNG GỌI XUỐNG JAVA API của nhánh quochoc
-            const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
-            if (!response.ok) throw new Error("Lỗi mạng");
-
-            // Java trả về Mảng JSON chứa tất cả data trong ngày
-            const jsonArray = await response.json();
-            if (!jsonArray || jsonArray.length === 0) return;
-
-            // Lấy phần tử mới nhất ở cuối mảng làm dòng Realtime
-            const latestData = jsonArray[jsonArray.length - 1];
-            const data = {
-                u: latestData.voltage || 0.0,
-                i: latestData.current || 0.0,
-                p: latestData.power || 0.0
-            };
-
-            // 1. Đổ dữ liệu vào HTML
-            document.getElementById('rt-voltage').innerText = data.u.toFixed(1);
-            document.getElementById('rt-current').innerText = data.i.toFixed(2);
-            document.getElementById('rt-power').innerText = data.p.toFixed(1);
-
-            // 2. Cập nhật thanh màu (Load Progress)
-            const percent = Math.min((data.p / 1200) * 100, 100);
-            const loadProgress = document.getElementById('load-progress');
-            if (loadProgress) {
-                loadProgress.style.width = percent + '%';
-                if (percent > 66) {
-                    loadProgress.className = 'h-1.5 rounded-full bg-red-500';
-                    // Kích hoạt Toast Cảnh Báo Quá Tải
-                    if (!window.hasAlertedSpike) {
-                        showToast('Cảnh báo quá tải thiết bị!', `Công suất hiện tại là <b class="text-white">${data.p.toFixed(1)}W</b>, vượt ngưỡng an toàn (800W). Giảm tải ngay!`, true);
-                        window.hasAlertedSpike = true;
-                        setTimeout(() => window.hasAlertedSpike = false, 10000); // Không spam liên tục trong 10s
-                    }
-                }
-                else if (percent > 40) loadProgress.className = 'h-1.5 rounded-full bg-yellow-400';
-                else loadProgress.className = 'h-1.5 rounded-full bg-green-400';
-            }
-
-            // 3. Cập nhật nhãn "Vừa xong"
-            const lastUpdate = document.getElementById('last-update');
-            if (lastUpdate) {
-                lastUpdate.innerText = 'Vừa xong';
-                lastUpdate.style.color = '#38bdf8';
-                setTimeout(() => { if (isOnline) lastUpdate.style.color = '#cbd5e1'; }, 500);
-            }
-
-        } catch (error) {
-            console.error("Không thể kết nối Backend Java:", error);
-            // Nếu Java sập, có thể tự động bóp cò Offline UI luôn.
-        }
+        await fetchAndRenderRealtime();
     }, 3000);
 }
-// =======================================================
 
-let consumptionChart;
-let simulationInterval;
-let isOnline = true;
+async function fetchAndRenderRealtime() {
+    try {
+        const deviceSelect = document.getElementById('device-select');
+        const rawVal = deviceSelect ? deviceSelect.value : "1";
+        const deviceId = DEVICE_MAP[rawVal] || 101;
 
+        const response = await fetch(`${CONFIG.API_BASE_URL}/realtime?deviceId=${deviceId}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data || Object.keys(data).length === 0) return;
+
+        const u = parseFloat(data.voltage || 0);
+        const i = parseFloat(data.current || 0);
+        const p = parseFloat(data.power || 0);
+
+        // Hiển thị chỉ số
+        document.getElementById('rt-voltage').innerText = u.toFixed(1);
+        document.getElementById('rt-current').innerText = i.toFixed(2);
+        document.getElementById('rt-power').innerText = p.toFixed(1);
+
+        // Thanh load
+        updateLoadBar(p);
+
+        // Label "Vừa xong"
+        flashLastUpdate();
+
+    } catch (error) {
+        console.warn('[Realtime] Không thể kết nối Backend Java:', error.message);
+        // Fallback: dùng mock nếu API lỗi
+        runMockTick();
+    }
+}
+
+function updateLoadBar(p) {
+    const percent = Math.min((p / 1200) * 100, 100);
+    const loadProgress = document.getElementById('load-progress');
+    if (!loadProgress) return;
+
+    loadProgress.style.width = percent + '%';
+    if (percent > 66) {
+        loadProgress.className = 'h-1.5 rounded-full bg-red-500';
+        if (!window.hasAlertedSpike) {
+            showToast('Cảnh báo quá tải thiết bị!',
+                `Công suất hiện tại là <b class="text-white">${p.toFixed(1)}W</b>, vượt ngưỡng an toàn (800W). Giảm tải ngay!`, true);
+            window.hasAlertedSpike = true;
+            setTimeout(() => window.hasAlertedSpike = false, 10000);
+        }
+    } else if (percent > 40) {
+        loadProgress.className = 'h-1.5 rounded-full bg-yellow-400';
+    } else {
+        loadProgress.className = 'h-1.5 rounded-full bg-green-400';
+    }
+}
+
+function flashLastUpdate() {
+    const lastUpdate = document.getElementById('last-update');
+    if (!lastUpdate) return;
+    lastUpdate.innerText = 'Vừa xong';
+    lastUpdate.style.color = '#38bdf8';
+    setTimeout(() => { if (isOnline) lastUpdate.style.color = '#cbd5e1'; }, 500);
+}
+
+// ===============================================================
+// MOCK: Dùng khi USE_MOCK_DATA = true HOẶC API lỗi
+// ===============================================================
+function initSimulatedData() {
+    startSimulation();
+}
+
+function startSimulation() {
+    simulationInterval = setInterval(runMockTick, 3000);
+    runMockTick();
+}
+
+function runMockTick() {
+    if (!isOnline) return;
+    const u = parseFloat((220 + Math.random() * 5).toFixed(1));
+    let i = parseFloat((2.0 + Math.random() * 1.5).toFixed(2));
+    if (Math.random() < 0.1) i = parseFloat((i + 2.5).toFixed(2));
+    const p = parseFloat((u * i).toFixed(1));
+
+    document.getElementById('rt-voltage').innerText = u;
+    document.getElementById('rt-current').innerText = i;
+    document.getElementById('rt-power').innerText = p;
+
+    updateLoadBar(p);
+    flashLastUpdate();
+}
+
+// ===============================================================
+// CHART
+// ===============================================================
 function initChart() {
     const ctx = document.getElementById('consumptionChart').getContext('2d');
 
-    // Gradient cho vùng fill biểu đồ
     let gradientFill = ctx.createLinearGradient(0, 0, 0, 400);
-    gradientFill.addColorStop(0, 'rgba(45, 212, 191, 0.5)'); // Teal-400
+    gradientFill.addColorStop(0, 'rgba(45, 212, 191, 0.5)');
     gradientFill.addColorStop(1, 'rgba(45, 212, 191, 0)');
 
     consumptionChart = new Chart(ctx, {
@@ -148,7 +199,7 @@ function initChart() {
             datasets: [{
                 label: 'Điện năng tiêu thụ (kWh)',
                 data: [0.5, 0.3, 1.2, 2.5, 2.0, 3.5, 4.8, 2.1],
-                borderColor: '#2dd4bf', // Teal-400
+                borderColor: '#2dd4bf',
                 backgroundColor: gradientFill,
                 borderWidth: 2,
                 pointBackgroundColor: '#111827',
@@ -186,70 +237,251 @@ function initChart() {
                     ticks: { color: '#94a3b8', font: { size: 11 } }
                 }
             },
-            interaction: {
-                intersect: false,
-                mode: 'index',
-            },
+            interaction: { intersect: false, mode: 'index' }
         }
     });
 }
 
-function initSimulatedData() {
-    startSimulation();
-}
+// ===============================================================
+// RENDER LOGS: Gọi API /api/xuandat/history/day (hoặc month/year)
+// ===============================================================
+async function renderLogs() {
+    try {
+        const tbody = document.getElementById('log-table-body');
+        if (!tbody) return;
 
-function startSimulation() {
-    // Mô phỏng cập nhật số liệu thời gian thực
-    simulationInterval = setInterval(() => {
-        if (!isOnline) return;
-        // Dao động điện áp khoảng 220V - 225V
-        const u = parseFloat((220 + Math.random() * 5).toFixed(1));
-        // Dao động dòng điện. Ở Bước 3 ta cho thêm tỷ lệ 10% dòng điện tăng vọt gây quá tải!
-        let i = parseFloat((2.0 + Math.random() * 1.5).toFixed(2));
-        if (Math.random() < 0.1) {
-            i = parseFloat((i + 2.5).toFixed(2)); // Dòng điện vọt lên bất thường
+        // Dữ liệu mock sẵn (dùng khi API lỗi hoặc USE_MOCK_DATA = true)
+        const MOCK_LOGS = [
+            { time: "16:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", voltage: 224.5, current: 2.45, power: 550.0 },
+            { time: "16:15:00 17/04/2026", device: "Trần Thị B (Nhà 102)", voltage: 225.1, current: 2.50, power: 562.7 },
+            { time: "16:00:00 17/04/2026", device: "Trần Thị B (Nhà 102)", voltage: 223.8, current: 1.10, power: 246.1 },
+            { time: "15:45:00 17/04/2026", device: "Lê Văn C (Nhà 103)", voltage: 224.0, current: 1.05, power: 235.2 },
+            { time: "15:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", voltage: 222.5, current: 0.95, power: 211.3 },
+            { time: "15:00:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", voltage: 221.8, current: 1.20, power: 266.1 },
+            { time: "14:30:00 17/04/2026", device: "Lê Văn C (Nhà 103)", voltage: 223.0, current: 0.88, power: 196.2 },
+            { time: "14:00:00 17/04/2026", device: "Trần Thị B (Nhà 102)", voltage: 224.3, current: 3.10, power: 695.3 }
+        ];
+
+        if (CONFIG.USE_MOCK_DATA) {
+            renderLogsToTable(tbody, filterMockLogs(MOCK_LOGS));
+            return;
         }
 
-        // Công suất (P = U * I)
-        const p = parseFloat((u * i).toFixed(1));
+        // Gọi API thật
+        const filterType = document.getElementById('filter-type').value;
+        const filterDate = document.getElementById('filter-date').value;
+        const filterUser = document.getElementById('filter-user').value;
+        const deviceId = filterUser !== 'all' ? parseInt(filterUser) : null;
 
-        document.getElementById('rt-voltage').innerText = u;
-        document.getElementById('rt-current').innerText = i;
-        document.getElementById('rt-power').innerText = p;
+        let apiUrl;
+        if (filterType === 'month') {
+            const month = filterDate.substring(0, 7); // "2026-04"
+            apiUrl = `${CONFIG.API_BASE_URL}/history/month?month=${month}`;
+            if (deviceId) apiUrl += `&deviceId=${deviceId}`;
+        } else if (filterType === 'year') {
+            const year = filterDate.substring(0, 4); // "2026"
+            apiUrl = `${CONFIG.API_BASE_URL}/history/year?year=${year}`;
+            if (deviceId) apiUrl += `&deviceId=${deviceId}`;
+        } else {
+            // Mặc định: theo ngày
+            apiUrl = `${CONFIG.API_BASE_URL}/history/day?day=${filterDate}`;
+            if (deviceId) apiUrl += `&deviceId=${deviceId}`;
+        }
 
-        // Cập nhật thanh progress công suất (Giả sử Max ngưỡng 1200W, Threshold Cảnh báo 800W)
-        const percent = Math.min((p / 1200) * 100, 100);
-        const loadProgress = document.getElementById('load-progress');
-        if (loadProgress) {
-            loadProgress.style.width = percent + '%';
-            if (percent > 66) { // ~800W
-                loadProgress.className = 'h-1.5 rounded-full bg-red-500';
+        const response = await fetch(apiUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-                // Kích hoạt Toast Cảnh Báo Quá Tải
-                if (!window.hasAlertedSpike) {
-                    showToast('Cảnh báo quá tải thiết bị!', `Công suất hiện tại là <b class="text-white">${p}W</b>, vượt ngưỡng an toàn (800W). Giảm tải ngay!`, true);
-                    window.hasAlertedSpike = true;
-                    setTimeout(() => window.hasAlertedSpike = false, 10000); // Không spam liên tục trong 10s
+        const logsData = await response.json();
+
+        if (!logsData || logsData.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-slate-500">Không có dữ liệu cho khoảng thời gian này.</td></tr>';
+            return;
+        }
+
+        // Dữ liệu summary (month/year) khác cấu trúc với day
+        if (filterType === 'month' || filterType === 'year') {
+            renderSummaryToTable(tbody, logsData, filterType);
+        } else {
+            renderLogsToTable(tbody, logsData);
+        }
+
+    } catch (e) {
+        console.warn('[renderLogs] Lỗi, fallback mock:', e.message);
+        // Fallback về mock
+        const tbody = document.getElementById('log-table-body');
+        if (tbody) renderLogsToTable(tbody, filterMockLogs(FAKE_LOGS_FALLBACK()));
+    }
+}
+
+function FAKE_LOGS_FALLBACK() {
+    return [
+        { time: "16:30:00 20/04/2026", device: "Nguyễn Văn A (Nhà 101)", voltage: 224.5, current: 2.45, power: 550.0 },
+        { time: "16:00:00 20/04/2026", device: "Trần Thị B (Nhà 102)", voltage: 225.1, current: 2.50, power: 562.7 },
+        { time: "15:30:00 20/04/2026", device: "Lê Văn C (Nhà 103)", voltage: 223.8, current: 1.10, power: 246.1 },
+        { time: "15:00:00 20/04/2026", device: "Nguyễn Văn A (Nhà 101)", voltage: 224.0, current: 1.05, power: 235.2 },
+        { time: "14:30:00 20/04/2026", device: "Trần Thị B (Nhà 102)", voltage: 222.5, current: 0.95, power: 211.3 }
+    ];
+}
+
+function filterMockLogs(logs) {
+    const filterUser = document.getElementById('filter-user')?.value || 'all';
+    if (filterUser === 'all') return logs;
+    const nameMap = { "101": "Nguyễn Văn A", "102": "Trần Thị B", "103": "Lê Văn C" };
+    return logs.filter(l => l.device.includes(nameMap[filterUser]));
+}
+
+function renderLogsToTable(tbody, logs) {
+    tbody.innerHTML = '';
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 text-slate-500">Không có dữ liệu.</td></tr>';
+        return;
+    }
+    logs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/30 transition-colors';
+        tr.innerHTML = `
+            <td class="px-4 py-3">${log.time}</td>
+            <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30">${log.device}</td>
+            <td class="px-4 py-3 text-blue-300">${parseFloat(log.voltage || 0).toFixed(1)}</td>
+            <td class="px-4 py-3 text-orange-300">${parseFloat(log.current || 0).toFixed(2)}</td>
+            <td class="px-4 py-3 text-yellow-300">${parseFloat(log.power || 0).toFixed(1)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function renderSummaryToTable(tbody, logs, type) {
+    tbody.innerHTML = '';
+    // Thay đổi header cho phù hợp loại hiển thị
+    const headers = type === 'month'
+        ? ['Ngày', 'Tổng điện năng (kWh)', '-', '-', '-']
+        : ['Tháng', 'Tổng điện năng (kWh)', '-', '-', '-'];
+
+    logs.forEach(log => {
+        const label = log.date || log.month || '-';
+        const kwh = parseFloat(log.energy_kwh || 0).toFixed(2);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/30 transition-colors';
+        tr.innerHTML = `
+            <td class="px-4 py-3">${label}</td>
+            <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30" colspan="4" class="text-teal-300">${kwh} kWh</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ===============================================================
+// BỘ LỌC: Click "Lọc" → gọi API phù hợp
+// ===============================================================
+document.getElementById('btn-filter')?.addEventListener('click', async function () {
+    const btn = this;
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
+    btn.disabled = true;
+
+    try {
+        const filterType = document.getElementById('filter-type').value;
+        const filterDate = document.getElementById('filter-date').value;
+        const filterUser = document.getElementById('filter-user').value;
+        const deviceId = filterUser !== 'all' ? parseInt(filterUser) : null;
+
+        if (!CONFIG.USE_MOCK_DATA) {
+            // Гọи API lấy dữ liệu biểu đồ
+            let chartApiUrl, chartData = [], chartLabels = [];
+
+            if (filterType === 'month') {
+                const month = filterDate.substring(0, 7);
+                chartApiUrl = `${CONFIG.API_BASE_URL}/history/month?month=${month}`;
+                if (deviceId) chartApiUrl += `&deviceId=${deviceId}`;
+
+                const res = await fetch(chartApiUrl);
+                if (res.ok) {
+                    const json = await res.json();
+                    chartLabels = json.map(d => d.date || d.month || '');
+                    chartData = json.map(d => parseFloat(d.energy_kwh || 0));
+                }
+            } else if (filterType === 'year') {
+                const year = filterDate.substring(0, 4);
+                chartApiUrl = `${CONFIG.API_BASE_URL}/history/year?year=${year}`;
+                if (deviceId) chartApiUrl += `&deviceId=${deviceId}`;
+
+                const res = await fetch(chartApiUrl);
+                if (res.ok) {
+                    const json = await res.json();
+                    chartLabels = json.map(d => d.month || '');
+                    chartData = json.map(d => parseFloat(d.energy_kwh || 0));
+                }
+            } else {
+                // DAY: dùng data từ history/day để tính tổng theo giờ
+                chartApiUrl = `${CONFIG.API_BASE_URL}/history/day?day=${filterDate}`;
+                if (deviceId) chartApiUrl += `&deviceId=${deviceId}`;
+
+                const res = await fetch(chartApiUrl);
+                if (res.ok) {
+                    const json = await res.json();
+                    // Group theo giờ
+                    const hourMap = {};
+                    json.forEach(d => {
+                        const hour = d.time ? d.time.substring(0, 2) + ':00' : '00:00';
+                        const p = parseFloat(d.power || 0);
+                        hourMap[hour] = (hourMap[hour] || 0) + (p / 1000); // W → kWh approx
+                    });
+                    chartLabels = Object.keys(hourMap).sort();
+                    chartData = chartLabels.map(h => Math.round(hourMap[h] * 100) / 100);
                 }
             }
-            else if (percent > 40) loadProgress.className = 'h-1.5 rounded-full bg-yellow-400';
-            else loadProgress.className = 'h-1.5 rounded-full bg-green-400';
+
+            if (chartData.length > 0) {
+                consumptionChart.data.labels = chartLabels;
+                consumptionChart.data.datasets[0].data = chartData;
+                consumptionChart.update();
+            } else {
+                // Không có data từ API → random demo
+                updateChartWithMock();
+            }
+        } else {
+            updateChartWithMock();
         }
 
-        // Cập nhật flash label "Vừa xong"
-        const lastUpdate = document.getElementById('last-update');
-        if (lastUpdate) {
-            lastUpdate.innerText = 'Vừa xong';
-            lastUpdate.style.color = '#38bdf8'; // Blue sáng lên
-            setTimeout(() => {
-                if (isOnline) lastUpdate.style.color = '#cbd5e1'; // Trở lại màu slate
-            }, 500);
-        }
+        // Cập nhật tổng quan
+        const currentData = consumptionChart.data.datasets[0].data;
+        const sum = currentData.reduce((a, b) => parseFloat(a) + parseFloat(b), 0).toFixed(1);
+        document.getElementById('total-consumption').innerHTML = sum + ' <span class="text-xs text-teal-200">kWh</span>';
+        document.getElementById('est-cost').innerHTML = Math.round(sum * 2800).toLocaleString('vi-VN') + ' <span class="text-xs text-pink-200">VNĐ</span>';
 
-    }, 3000); // Cập nhật mỗi 3 giây
+        // Render lại bảng logs
+        await renderLogs();
+
+    } catch (err) {
+        console.warn('[Filter] Lỗi khi lọc:', err.message);
+        updateChartWithMock();
+        await renderLogs();
+    }
+
+    btn.innerHTML = originalHtml;
+    btn.disabled = false;
+});
+
+function updateChartWithMock() {
+    const newData = Array.from({ length: 8 }, () => parseFloat((Math.random() * 5).toFixed(1)));
+    consumptionChart.data.datasets[0].data = newData;
+    consumptionChart.update();
 }
 
-// Helper: Hiển thị Toast Notification (Bước 3)
+// ===============================================================
+// XUẤT EXCEL
+// ===============================================================
+document.getElementById('btn-export')?.addEventListener('click', function () {
+    const table = document.getElementById('log-table');
+    if (!table) { alert('Không tìm thấy bảng dữ liệu!'); return; }
+
+    const wb = XLSX.utils.table_to_book(table, { sheet: "NhatKyTieuThu" });
+    XLSX.writeFile(wb, 'LichSu_TieuThuDien.xlsx');
+});
+
+// ===============================================================
+// TOAST NOTIFICATION
+// ===============================================================
 function showToast(title, message, isError = true) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -260,9 +492,7 @@ function showToast(title, message, isError = true) {
     const iconColor = isError ? 'text-red-400' : 'text-blue-400';
     const icon = isError ? 'fa-triangle-exclamation' : 'fa-bell';
 
-    // UI Toast
     toast.className = `glass-panel ${bgColor} border ${borderColor} p-4 rounded-xl shadow-2xl flex items-start gap-3 w-80 transform transition-all duration-300 translate-x-full opacity-0`;
-
     toast.innerHTML = `
         <i class="fa-solid ${icon} ${iconColor} text-2xl mt-0.5"></i>
         <div class="flex-1">
@@ -275,148 +505,10 @@ function showToast(title, message, isError = true) {
     `;
 
     container.appendChild(toast);
-
-    // Bật animation (slide in)
-    requestAnimationFrame(() => {
-        toast.classList.remove('translate-x-full', 'opacity-0');
-    });
-
-    // Tự động tắt sau 6 giây
+    requestAnimationFrame(() => { toast.classList.remove('translate-x-full', 'opacity-0'); });
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateX(100%)';
         setTimeout(() => toast.remove(), 300);
     }, 6000);
 }
-
-// Hàm render dữ liệu bảng log tĩnh (thay vì code cứng trong html)
-async function renderLogs() {
-    try {
-        const tbody = document.getElementById('log-table-body');
-        if (!tbody) return;
-
-        if (CONFIG.USE_MOCK_DATA) {
-            // Chế độ giả lập vì API chưa có data thật
-            const logs = [
-                { time: "16:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", u: 224.5, i: 2.45, p: 550.0 },
-                { time: "16:15:00 17/04/2026", device: "Trần Thị B (Nhà 102)", u: 225.1, i: 2.50, p: 562.7 },
-                { time: "16:00:00 17/04/2026", device: "Trần Thị B (Nhà 102)", u: 223.8, i: 1.10, p: 246.1 },
-                { time: "15:45:00 17/04/2026", device: "Lê Văn C (Nhà 103)", u: 224.0, i: 1.05, p: 235.2 },
-                { time: "15:30:00 17/04/2026", device: "Nguyễn Văn A (Nhà 101)", u: 222.5, i: 0.95, p: 211.3 }
-            ];
-            tbody.innerHTML = '';
-
-            // Lấy id filter user hiện tại
-            const filterUser = document.getElementById('filter-user').value;
-            let displayLogs = logs;
-            if (filterUser !== "all") {
-                const userTextMap = { "101": "Nguyễn Văn A", "102": "Trần Thị B", "103": "Lê Văn C" };
-                displayLogs = logs.filter(l => l.device.includes(userTextMap[filterUser]));
-            }
-
-            displayLogs.forEach(log => {
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-800/30 transition-colors';
-                tr.innerHTML = `
-                    <td class="px-4 py-3">${log.time}</td>
-                    <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30">${log.device}</td>
-                    <td class="px-4 py-3 text-blue-300">${log.u}</td>
-                    <td class="px-4 py-3 text-orange-300">${log.i}</td>
-                    <td class="px-4 py-3 text-yellow-300">${log.p}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            return;
-        }
-
-        // Chế độ API thật
-        const today = document.getElementById('filter-date').value;
-        const filterUserAPI = document.getElementById('filter-user').value;
-
-        const response = await fetch(`${CONFIG.API_BASE_URL}/data/day?day=${today}`);
-        if (!response.ok) return;
-
-        const logsData = await response.json();
-        tbody.innerHTML = '';
-
-        // Cắt bớt và lật ngược
-        let displayLogsAPI = logsData.reverse().slice(0, 50);
-
-        // Giả sử API chưa trả về tên khách hàng, ta gán tên ảo để demo Admin View
-        const demoNames = ["Nguyễn Văn A (Nhà 101)", "Trần Thị B (Nhà 102)", "Lê Văn C (Nhà 103)"];
-        let counter = 0;
-
-        displayLogsAPI.forEach(log => {
-            // Fake assigned name cho trường hợp data thật thiếu device_id
-            let assignedName = demoNames[counter % demoNames.length];
-            if (filterUserAPI !== "all") {
-                const sel = document.getElementById('filter-user');
-                assignedName = sel.options[sel.selectedIndex].text;
-            } else {
-                counter++;
-            }
-
-            const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-800/30 transition-colors';
-            // Ghép time và ngày hôm nay
-            const displayTime = `${log.time} ${today.split('-').reverse().join('/')}`;
-            tr.innerHTML = `
-                <td class="px-4 py-3">${displayTime}</td>
-                <td class="px-4 py-3 font-semibold text-indigo-300 border-l border-indigo-900/30">${assignedName}</td>
-                <td class="px-4 py-3 text-blue-300">${log.voltage || 0.0}</td>
-                <td class="px-4 py-3 text-orange-300">${log.current || 0.0}</td>
-                <td class="px-4 py-3 text-yellow-300">${log.power || 0.0}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    } catch (e) {
-        console.error("Lỗi khi load Logs", e);
-    }
-}
-
-// Xử lý sự kiện click lọc dữ liệu
-document.getElementById('btn-filter')?.addEventListener('click', function () {
-    const filterType = document.getElementById('filter-type').value;
-    const filterDate = document.getElementById('filter-date').value;
-
-    // Giả lập loading và thay đổi dữ liệu
-    const btn = this;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang tải...';
-    btn.disabled = true;
-
-    setTimeout(() => {
-        // Sinh mảng dữ liệu ngẫu nhiên để demo biểu đồ
-        let newData = Array.from({ length: 8 }, () => (Math.random() * 5).toFixed(1));
-        let sum = newData.reduce((a, b) => parseFloat(a) + parseFloat(b), 0).toFixed(1);
-
-        // Cập nhật biểu đồ
-        consumptionChart.data.datasets[0].data = newData;
-        consumptionChart.update();
-
-        // Cập nhật số liệu tổng quan
-        document.getElementById('total-consumption').innerHTML = sum + ' <span class="text-xs text-teal-200">kWh</span>';
-        document.getElementById('est-cost').innerHTML = (sum * 2500).toLocaleString('vi-VN') + ' <span class="text-xs text-pink-200">VNĐ</span>';
-
-        // Gọi lại hàm render bảng dữ liệu để load data theo Filter Khách Hàng và Filter Ngày
-        renderLogs();
-
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }, 800);
-});
-
-// Xử lý sự kiện click xuất dữ liệu Excel
-document.getElementById('btn-export')?.addEventListener('click', function () {
-    const table = document.getElementById('log-table');
-    if (!table) {
-        alert("Không tìm thấy bảng dữ liệu!");
-        return;
-    }
-
-    // Chuyển HTML Table thành Workbook của SheetJS
-    const wb = XLSX.utils.table_to_book(table, { sheet: "NhatKyTieuThu" });
-
-    // Tải file về máy (định dạng xlsx)
-    XLSX.writeFile(wb, 'LichSu_TieuThuDien.xlsx');
-});
