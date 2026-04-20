@@ -57,12 +57,22 @@ async function fetchRealUsageHistory() {
     try {
         const res = await fetch(`${API_BASE_URL}/energy/monthly?deviceIds=${idsParam}&month=${appState.currentMonth}`);
         const data = await res.json();
-        appState.monthlyHistory = data.map(item => ({
-            date: item.ngay, usage: item.tong_nang_luong, cost: item.tong_nang_luong * appState.pricePerKwh
-        }));
+        
+        if (Array.isArray(data)) {
+            appState.monthlyHistory = data.map(item => ({
+                date: item.ngay, 
+                usage: parseFloat(item.tong_nang_luong) || 0, 
+                cost: (parseFloat(item.tong_nang_luong) || 0) * appState.pricePerKwh
+            }));
+        } else {
+            appState.monthlyHistory = [];
+        }
+        
         recalculateCurrentUsage();
         return true;
     } catch (e) {
+        console.error("Lỗi tải lịch sử tiêu thụ:", e);
+        appState.monthlyHistory = [];
         return false;
     }
 }
@@ -209,7 +219,7 @@ function getCurrentMonth() {
 }
 
 // =====================
-// UI UPDATES & BIỂU ĐỒ
+// UI UPDATES & BIỂU ĐỒ (ĐÃ FIX LỖI TÍNH THEO TIỀN)
 // =====================
 function updateAllUI() {
     document.getElementById('budgetDisplay').querySelector('.amount').textContent = appState.budget.toLocaleString('vi-VN');
@@ -219,16 +229,25 @@ function updateAllUI() {
     document.getElementById('currentUsage').textContent = appState.currentUsage.toFixed(1);
     document.getElementById('lastUpdate').textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
 
-    const percentage = appState.budget > 0 ? (appState.currentUsage / appState.budget * 100) : 0;
-    document.getElementById('percentageValue').textContent = Math.min(percentage, 100).toFixed(1) + '%';
+    // TÍNH TOÁN DỰA TRÊN SỐ TIỀN THAY VÌ SỐ KWH
+    const estimatedCost = appState.currentUsage * appState.pricePerKwh;
+    
+    // Tính phần trăm: Chi phí / Ngân sách tiền
+    const percentage = appState.budget > 0 ? (estimatedCost / appState.budget * 100) : 0;
+    const clampedPercentage = Math.min(percentage, 100);
 
-    document.getElementById('estimatedCost').textContent = Math.round(appState.currentUsage * appState.pricePerKwh).toLocaleString('vi-VN');
+    document.getElementById('percentageValue').textContent = clampedPercentage.toFixed(1) + '%';
+    document.getElementById('estimatedCost').textContent = Math.round(estimatedCost).toLocaleString('vi-VN');
     document.getElementById('pricePerKwh').textContent = appState.pricePerKwh.toLocaleString('vi-VN');
     document.getElementById('priceInput').value = appState.pricePerKwh;
 
-    document.getElementById('progressBar').style.width = Math.min(percentage, 100) + '%';
-    document.getElementById('progressLabel').textContent = Math.min(percentage, 100).toFixed(1) + '%';
-    document.getElementById('remainingKwh').textContent = Math.max(appState.budget - appState.currentUsage, 0).toFixed(1);
+    document.getElementById('progressBar').style.width = clampedPercentage + '%';
+    document.getElementById('progressLabel').textContent = clampedPercentage.toFixed(1) + '%';
+    
+    // Tiền còn lại = Ngân sách - Chi phí ước tính
+    const remainingMoney = Math.max(appState.budget - estimatedCost, 0);
+    const remEl = document.getElementById('remainingMoney');
+    if (remEl) remEl.textContent = Math.round(remainingMoney).toLocaleString('vi-VN');
 
     const statusElement = document.getElementById('statusText');
     if (percentage >= 100) { statusElement.textContent = 'Đã vượt quá hạn mức!'; statusElement.style.background = '#fee2e2'; statusElement.style.color = '#dc2626'; } 
@@ -240,28 +259,94 @@ function updateAllUI() {
 
 function initializeCharts() {
     if(typeof Chart === 'undefined') return;
-    Chart.defaults.color = '#94a3b8'; Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
+    Chart.defaults.color = '#94a3b8'; 
+    Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
 
     const dailyCtx = document.getElementById('dailyChart');
-    if (dailyCtx) dailyChart = new Chart(dailyCtx, { type: 'line', data: { labels: [], datasets: [{ label: 'Tiêu Thụ (kWh)', data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 3, fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { display: true, position: 'top' } }, scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, beginAtZero: true } } } });
+    if (dailyCtx) {
+        dailyChart = new Chart(dailyCtx, { 
+            type: 'line', 
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'Tiêu Thụ (kWh)', 
+                    data: [], 
+                    borderColor: '#10b981', 
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)', 
+                    borderWidth: 3, 
+                    fill: true, 
+                    tension: 0.4 
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                plugins: { legend: { display: true, position: 'top' } }, 
+                scales: { x: { grid: { display: false } }, y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, beginAtZero: true } } 
+            } 
+        });
+    }
 
     const costCtx = document.getElementById('costChart');
-    if (costCtx) costChart = new Chart(costCtx, { type: 'doughnut', data: { labels: ['Đã sử dụng', 'Còn lại'], datasets: [{ data: [], backgroundColor: ['#10b981', '#1e293b'], borderColor: ['#162641', '#162641'], borderWidth: 2 }] }, options: { responsive: true, maintainAspectRatio: true } });
+    if (costCtx) {
+        costChart = new Chart(costCtx, { 
+            type: 'doughnut', 
+            data: { 
+                labels: ['Đã sử dụng (₫)', 'Còn lại (₫)'], 
+                datasets: [{ 
+                    data: [0, 1], 
+                    backgroundColor: ['#1e293b', '#1e293b'], 
+                    borderColor: ['#162641', '#162641'], 
+                    borderWidth: 2 
+                }] 
+            }, 
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true 
+            } 
+        });
+    }
 }
 
 function updateCharts() {
     if (!dailyChart || !costChart) return;
-    const dailyData = {}; appState.monthlyHistory.forEach(entry => dailyData[entry.date] = entry.usage);
+    
+    // ======== CẬP NHẬT LINE CHART ========
+    const dailyData = {}; 
+    if (Array.isArray(appState.monthlyHistory)) {
+        appState.monthlyHistory.forEach(entry => dailyData[entry.date] = entry.usage);
+    }
     const sortedDates = Object.keys(dailyData).sort();
     
-    dailyChart.data.labels = sortedDates.map(date => new Date(date).toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' }));
-    dailyChart.data.datasets[0].data = sortedDates.map(date => dailyData[date]);
+    if (sortedDates.length > 0) {
+        dailyChart.data.labels = sortedDates.map(date => {
+            const d = new Date(date);
+            return isNaN(d.getTime()) ? date : d.toLocaleDateString('vi-VN', { month: 'short', day: 'numeric' });
+        });
+        dailyChart.data.datasets[0].data = sortedDates.map(date => dailyData[date]);
+    } else {
+        dailyChart.data.labels = ['Chưa có dữ liệu'];
+        dailyChart.data.datasets[0].data = [0];
+    }
     dailyChart.update();
 
-    const remaining = Math.max(appState.budget - appState.currentUsage, 0);
-    costChart.data.datasets[0].data = [appState.currentUsage, remaining];
-    const pct = appState.budget > 0 ? (appState.currentUsage / appState.budget * 100) : 0;
-    costChart.data.datasets[0].backgroundColor[0] = pct >= 100 ? '#ef4444' : pct >= appState.warningLevel ? '#f59e0b' : '#10b981';
+    // ======== CẬP NHẬT DOUGHNUT CHART DỰA TRÊN SỐ TIỀN ========
+    const estimatedCost = appState.currentUsage * appState.pricePerKwh;
+    const remaining = Math.max(appState.budget - estimatedCost, 0);
+    
+    if (estimatedCost === 0 && remaining === 0) {
+        costChart.data.datasets[0].data = [0, 1]; 
+        costChart.data.datasets[0].backgroundColor = ['#1e293b', '#1e293b'];
+    } else {
+        costChart.data.datasets[0].data = [estimatedCost, remaining];
+        const pct = appState.budget > 0 ? (estimatedCost / appState.budget * 100) : 0;
+        
+        let usageColor = '#10b981'; 
+        if (pct >= 100) usageColor = '#ef4444'; 
+        else if (pct >= appState.warningLevel) usageColor = '#f59e0b'; 
+        
+        costChart.data.datasets[0].backgroundColor = [usageColor, '#1e293b'];
+    }
     costChart.update();
 }
 

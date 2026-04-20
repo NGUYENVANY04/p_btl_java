@@ -31,13 +31,13 @@
                             </div>
                             <div id="budgetDisplay" class="stat-value">
                                 <span class="amount">0</span><span
-                                    class="unit">kWh</span>
+                                    class="unit">₫</span>
                             </div>
                             <div id="budgetEditForm" class="edit-form"
                                 style="display: none;">
                                 <input type="number" id="budgetInput"
-                                    placeholder="Nhập hạn mức (kWh)" min="0"
-                                    step="0.1">
+                                    placeholder="Nhập hạn mức (₫)" min="0"
+                                    step="1000">
                                 <div class="button-group">
                                     <button class="btn-save"
                                         onclick="saveBudget()">Lưu</button>
@@ -55,7 +55,7 @@
                                     id="lastUpdate">--:--</span></div>
                         </div>
                         <div class="stat-card percentage-card">
-                            <span class="stat-label">% Đã Sử Dụng</span>
+                            <span class="stat-label">% Ngân Sách</span>
                             <div class="percentage-display"><div
                                     class="percentage-value"
                                     id="percentageValue">0%</div></div>
@@ -76,10 +76,10 @@
                 <section class="progress-section">
                     <div class="progress-container">
                         <div class="progress-info">
-                            <h3>Tiến độ sử dụng</h3>
+                            <h3>Tiến độ ngân sách</h3>
                             <div class="progress-stats"><span>Còn lại: <strong
-                                        id="remainingKwh">0</strong>
-                                    kWh</span></div>
+                                        id="remainingMoney">0</strong>
+                                    ₫</span></div>
                         </div>
                         <div class="progress-bar-wrapper">
                             <div class="progress-bar-bg"><div id="progressBar"
