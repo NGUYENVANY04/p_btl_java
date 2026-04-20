@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IoT Alerts</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <style>
+        .alert-item {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .alert-unread {
+            background-color: #fff3cd;
+        }
+        .alert-offline {
+            border-left: 5px solid #dc3545;
+        }
+        .alert-threshold {
+            border-left: 5px solid #ffc107;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>IoT System Alerts</h1>
+
+        <div class="actions">
+            <button onclick="checkOffline()">Check Offline Devices</button>
+            <button onclick="checkThreshold()">Check Threshold Alerts</button>
+            <button onclick="loadAlerts()">Load Alerts</button>
+        </div>
+
+        <div id="alerts-container">
+            <!-- Alerts will be displayed here -->
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script>
+        async function checkOffline() {
+            try {
+                const result = await checkOfflineDevices();
+                alert(`Checked offline devices. Created ${result.created_alerts} alerts.`);
+                loadAlerts();
+            } catch (error) {
+                alert('Error checking offline devices: ' + error.message);
+            }
+        }
+
+        async function checkThreshold() {
+            try {
+                const result = await checkThresholdAlerts();
+                alert(`Checked threshold alerts. Created ${result.created_alerts} alerts.`);
+                loadAlerts();
+            } catch (error) {
+                alert('Error checking threshold alerts: ' + error.message);
+            }
+        }
+
+        async function loadAlerts() {
+            try {
+                const alerts = await getAlerts();
+                displayAlerts(alerts);
+            } catch (error) {
+                alert('Error loading alerts: ' + error.message);
+            }
+        }
+
+        function displayAlerts(alerts) {
+            const container = document.getElementById('alerts-container');
+            container.innerHTML = '';
+
+            if (alerts.length === 0) {
+                container.innerHTML = '<p>No alerts found.</p>';
+                return;
+            }
+
+            alerts.forEach(alert => {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert-item ${alert.is_read ? '' : 'alert-unread'} ${getAlertTypeClass(alert.type)}`;
+
+                alertDiv.innerHTML = `
+                    <h3>${alert.type}</h3>
+                    <p>${alert.message}</p>
+                    <small>Device ID: ${alert.device_id} | Read: ${alert.is_read ? 'Yes' : 'No'}</small>
+                `;
+
+                container.appendChild(alertDiv);
+            });
+        }
+
+        function getAlertTypeClass(type) {
+            if (type === 'OFFLINE') return 'alert-offline';
+            if (type.includes('EXCEEDED')) return 'alert-threshold';
+            return '';
+        }
+
+        // Load alerts on page load
+        window.onload = loadAlerts;
+    </script>
+</body>
+</html>

@@ -11,6 +11,7 @@ import com.Iot.backend.dto.DeviceRequestDTO;
 import com.Iot.backend.service.DeviceService;
 import com.Iot.backend.service.UserService;
 import com.Iot.backend.service.ducthinh;
+import com.Iot.backend.service.daocuong;
 import java.util.Map;
 
 @CrossOrigin("*") // Thêm để Frontend (HTML/JS) có thể gọi API mà không bị lỗi CORS
@@ -27,6 +28,8 @@ public class SupabaseController {
     private UserService userService;
     @Autowired
     private ducthinh ducthinhService;
+    @Autowired
+    private daocuong daocuongService;
 
     // Lấy dữ liệu tổng quan theo năm
     @GetMapping("/quochoc/energy/overview")
@@ -142,6 +145,22 @@ public class SupabaseController {
                 "deviceId", deviceId,
                 "status", status.toUpperCase(),
                 "message", result));
+    }
+
+    // ================= DAOCUONG API =================
+    @GetMapping("/daocuong/devices/offline/check")
+    public ResponseEntity<?> checkOffline(@RequestParam(defaultValue = "4") Integer seconds, @RequestParam Integer userId) {
+        return ResponseEntity.ok(daocuongService.checkOfflineDevicesForUser(seconds, userId));
+    }
+
+    @GetMapping("/daocuong/threshold/check")
+    public ResponseEntity<?> checkThreshold(@RequestParam Integer userId) {
+        return ResponseEntity.ok(daocuongService.checkThresholdAlertsForUser(userId));
+    }
+
+    @GetMapping("/daocuong/alerts")
+    public ResponseEntity<?> getAlerts(@RequestParam(defaultValue = "50") Integer limit, @RequestParam Integer userId) {
+        return ResponseEntity.ok(daocuongService.getLatestAlertsForUser(limit, userId));
     }
 
     @GetMapping("/quochoc/alerts")

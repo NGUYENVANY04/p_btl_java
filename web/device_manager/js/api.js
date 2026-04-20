@@ -164,3 +164,31 @@ async function saveLimit(deviceId, maxPower, maxCurrent) {
         max_current: maxCurrent
     });
 }
+
+// ================= ALERTS API =================
+async function checkOfflineDevices(seconds = 4) {
+    const user = JSON.parse(sessionStorage.getItem("currentUser"));
+    if (!user || !user.id) throw new Error("Chưa đăng nhập");
+
+    const res = await fetch(`${API.replace('/devices', '')}/daocuong/devices/offline/check?seconds=${seconds}&userId=${user.id}`);
+    if (!res.ok) throw new Error("Failed to check offline devices");
+    return await res.json();
+}
+
+async function checkThresholdAlerts() {
+    const user = JSON.parse(sessionStorage.getItem("currentUser"));
+    if (!user || !user.id) throw new Error("Chưa đăng nhập");
+
+    const res = await fetch(`${API.replace('/devices', '')}/daocuong/threshold/check?userId=${user.id}`);
+    if (!res.ok) throw new Error("Failed to check threshold alerts");
+    return await res.json();
+}
+
+async function getAlerts(limit = 50) {
+    const user = JSON.parse(sessionStorage.getItem("currentUser"));
+    if (!user || !user.id) throw new Error("Chưa đăng nhập");
+
+    const res = await fetch(`${API.replace('/devices', '')}/daocuong/alerts?limit=${limit}&userId=${user.id}`);
+    if (!res.ok) throw new Error("Failed to fetch alerts");
+    return await res.json();
+}
