@@ -26,6 +26,31 @@ public class xuandat {
     }
 
     // =============================
+    // API: Lấy danh sách thiết bị từ bảng devices
+    //  GET /api/xuandat/devices
+    //  Trả về [{id, name, location, status}]
+    // =============================
+    public List<Map<String, Object>> getDevices() {
+        try {
+            HttpEntity<String> entity = new HttpEntity<>(buildHeaders());
+            String url = URL + "/devices?select=id,name,location,status&order=id.asc";
+
+            ResponseEntity<List<Map<String, Object>>> response = restTemplate.exchange(
+                    url,
+                    HttpMethod.GET,
+                    entity,
+                    new ParameterizedTypeReference<List<Map<String, Object>>>() {
+                    });
+
+            return response.getBody() != null ? response.getBody() : new ArrayList<>();
+
+        } catch (Exception e) {
+            System.out.println("[xuandat] getDevices error: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // =============================
     // FETCH: Lấy toàn bộ sensor_data (tất cả cột)
     // =============================
     private List<Map<String, Object>> fetchAllSensorData() {

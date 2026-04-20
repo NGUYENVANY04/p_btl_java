@@ -69,6 +69,13 @@ public class SupabaseController {
     // XUANDAT - Usecase 3: Giám sát & Lịch sử
     // =======================================
 
+    // Danh sách thiết bị thật từ Supabase (để fill dropdown)
+    // GET /api/xuandat/devices
+    @GetMapping("/xuandat/devices")
+    public ResponseEntity<?> getDevices() {
+        return ResponseEntity.ok(xuanDatService.getDevices());
+    }
+
     // Realtime: lấy bản ghi mới nhất của 1 thiết bị
     // GET /api/xuandat/realtime?deviceId=101
     @GetMapping("/xuandat/realtime")

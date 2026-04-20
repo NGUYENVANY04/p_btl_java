@@ -16,6 +16,7 @@ let isOnline = true;
 // ===============================================================
 document.addEventListener('DOMContentLoaded', function () {
     initChart();
+    loadDevices(); // Fetch danh sách thiết bị thật từ API
 
     if (CONFIG.USE_MOCK_DATA) {
         initSimulatedData();
@@ -26,6 +27,48 @@ document.addEventListener('DOMContentLoaded', function () {
     renderLogs();
     initConnectionToggle();
 });
+
+// ===============================================================
+// LOAD DEVICES: Fetch từ /api/xuandat/devices rồi fill dropdown
+// ===============================================================
+async function loadDevices() {
+    try {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/devices`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const devices = await response.json();
+        if (!devices || devices.length === 0) return;
+
+        // Fill dropdown thiết bị (góc trái - realtime)
+        const deviceSelect = document.getElementById('device-select');
+        if (deviceSelect) {
+            deviceSelect.innerHTML = '';
+            devices.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = `${d.name || 'Thiết bị ' + d.id} (ID: ${d.id})`;
+                deviceSelect.appendChild(opt);
+            });
+        }
+
+        // Fill dropdown filter khách hàng (góc phải - lịch sử)
+        const filterUser = document.getElementById('filter-user');
+        if (filterUser) {
+            // Giữ lại option "Tất cả"
+            filterUser.innerHTML = '<option value="all">Tất cả Khách hàng</option>';
+            devices.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = d.id;
+                opt.textContent = `${d.name || 'Thiết bị ' + d.id} (ID: ${d.id})`;
+                filterUser.appendChild(opt);
+            });
+        }
+
+    } catch (err) {
+        console.warn('[loadDevices] Không thể fetch devices, dùng options mặc định:', err.message);
+        // Giữ nguyên options hardcode trong HTML làm fallback
+    }
+}
 
 // ===============================================================
 // CONNECTION TOGGLE (Bật/Tắt giả lập kết nối để demo)
